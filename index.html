@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="고도리" />
+  <meta name="theme-color" content="#007AFF" />
+  <link rel="manifest" href="manifest.json" />
+  <title>고도리 — 텍스트 변경 비교</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #007AFF;
+      --green: #34C759;
+      --red: #FF3B30;
+      --bg: #F2F2F7;
+      --card: #FFFFFF;
+      --label: #000000;
+      --secondary: #6C6C70;
+      --separator: #C6C6C8;
+      --ins-bg: #D4F5DC;
+      --ins-fg: #1A6B2E;
+      --del-bg: #FDDCDC;
+      --del-fg: #8B1A1A;
+      --radius: 12px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1C1C1E;
+        --card: #2C2C2E;
+        --label: #FFFFFF;
+        --secondary: #8E8E93;
+        --separator: #38383A;
+        --ins-bg: #1A3D22;
+        --ins-fg: #6EE68A;
+        --del-bg: #3D1A1A;
+        --del-fg: #FF8080;
+      }
+    }
+
+    body {
+      font-family: -apple-system, "SF Pro Text", sans-serif;
+      background: var(--bg);
+      color: var(--label);
+      min-height: 100dvh;
+      padding-bottom: calc(16px + var(--safe-bottom));
+    }
+
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--separator);
+      padding: 16px 20px 12px;
+      padding-top: calc(16px + env(safe-area-inset-top, 0px));
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+    }
+
+    header p {
+      font-size: 13px;
+      color: var(--secondary);
+      margin-top: 2px;
+    }
+
+    main {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid var(--separator);
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-gray { background: var(--secondary); }
+    .dot-blue { background: var(--blue); }
+
+    .clear-btn {
+      background: none;
+      border: none;
+      color: var(--secondary);
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 6px;
+      transition: opacity 0.15s;
+    }
+    .clear-btn:active { opacity: 0.5; }
+
+    textarea {
+      width: 100%;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--label);
+      font-family: inherit;
+      font-size: 15px;
+      line-height: 1.5;
+      resize: none;
+      padding: 12px 14px;
+      min-height: 140px;
+    }
+
+    textarea::placeholder { color: var(--secondary); }
+
+    .compare-btn {
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 16px;
+      font-weight: 600;
+      padding: 15px;
+      width: 100%;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .compare-btn:active { opacity: 0.8; transform: scale(0.98); }
+    .compare-btn:disabled { background: var(--secondary); opacity: 0.5; cursor: default; transform: none; }
+
+    /* Result panel */
+    #result-section { display: none; }
+
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      padding: 10px 14px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--separator);
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .stat-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    .stat-count { font-weight: 700; }
+    .stat-green .stat-count { color: var(--green); }
+    .stat-red .stat-count { color: var(--red); }
+    .stat-gray .stat-count { color: var(--secondary); }
+
+    #diff-output {
+      padding: 14px;
+      font-size: 15px;
+      line-height: 1.8;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .ins {
+      background: var(--ins-bg);
+      color: var(--ins-fg);
+      border-radius: 3px;
+      padding: 1px 2px;
+    }
+
+    .del {
+      background: var(--del-bg);
+      color: var(--del-fg);
+      text-decoration: line-through;
+      border-radius: 3px;
+      padding: 1px 2px;
+    }
+
+    .copy-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: 1px solid var(--separator);
+      border-radius: 8px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 7px 12px;
+      cursor: pointer;
+      margin: 0 14px 14px;
+      transition: opacity 0.15s;
+    }
+    .copy-btn:active { opacity: 0.5; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>고도리</h1>
+  <p>텍스트 변경사항 비교</p>
+</header>
+
+<main>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <span class="dot dot-gray"></span>
+        초안
+      </div>
+      <button class="clear-btn" onclick="clearText('original')" aria-label="지우기">지우기</button>
+    </div>
+    <textarea id="original" placeholder="원본 텍스트를 입력하세요" oninput="onInput()" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <span class="dot dot-blue"></span>
+        수정안
+      </div>
+      <button class="clear-btn" onclick="clearText('revised')" aria-label="지우기">지우기</button>
+    </div>
+    <textarea id="revised" placeholder="수정된 텍스트를 입력하세요" oninput="onInput()" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
+  </div>
+
+  <button class="compare-btn" id="compare-btn" onclick="compare()" disabled>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12h14M15 6l6 6-6 6M9 6L3 12l6 6"/>
+    </svg>
+    변경사항 비교하기
+  </button>
+
+  <div class="card" id="result-section">
+    <div class="card-header">
+      <div class="card-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        비교 결과
+      </div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat stat-green">
+        <span class="stat-dot" style="background:var(--green)"></span>
+        추가 <span class="stat-count" id="count-ins">0</span>
+      </div>
+      <div class="stat stat-red">
+        <span class="stat-dot" style="background:var(--red)"></span>
+        삭제 <span class="stat-count" id="count-del">0</span>
+      </div>
+      <div class="stat stat-gray">
+        <span class="stat-dot" style="background:var(--secondary)"></span>
+        유지 <span class="stat-count" id="count-eq">0</span>
+      </div>
+    </div>
+    <div id="diff-output"></div>
+    <button class="copy-btn" onclick="copyResult()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+      </svg>
+      결과 텍스트 복사
+    </button>
+  </div>
+</main>
+
+<script>
+  // --- Tokenizer: split by word + whitespace
+  function tokenize(text) {
+    const tokens = [];
+    let cur = '';
+    for (const ch of text) {
+      if (' \t\n\r'.includes(ch)) {
+        if (cur) { tokens.push(cur); cur = ''; }
+        tokens.push(ch);
+      } else {
+        cur += ch;
+      }
+    }
+    if (cur) tokens.push(cur);
+    return tokens;
+  }
+
+  // --- LCS diff
+  function diff(oldToks, newToks) {
+    const m = oldToks.length, n = newToks.length;
+    // Use flat array for memory efficiency
+    const dp = new Int32Array((m + 1) * (n + 1));
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        dp[i * (n + 1) + j] = oldToks[i - 1] === newToks[j - 1]
+          ? dp[(i - 1) * (n + 1) + (j - 1)] + 1
+          : Math.max(dp[(i - 1) * (n + 1) + j], dp[i * (n + 1) + (j - 1)]);
+      }
+    }
+    const result = [];
+    let i = m, j = n;
+    while (i > 0 || j > 0) {
+      if (i > 0 && j > 0 && oldToks[i - 1] === newToks[j - 1]) {
+        result.push({ type: 'eq', text: oldToks[i - 1] });
+        i--; j--;
+      } else if (j > 0 && (i === 0 || dp[i * (n + 1) + (j - 1)] >= dp[(i - 1) * (n + 1) + j])) {
+        result.push({ type: 'ins', text: newToks[j - 1] });
+        j--;
+      } else {
+        result.push({ type: 'del', text: oldToks[i - 1] });
+        i--;
+      }
+    }
+    return result.reverse();
+  }
+
+  function escape(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function onInput() {
+    const a = document.getElementById('original').value.trim();
+    const b = document.getElementById('revised').value.trim();
+    document.getElementById('compare-btn').disabled = !(a && b);
+  }
+
+  function clearText(id) {
+    document.getElementById(id).value = '';
+    onInput();
+  }
+
+  function compare() {
+    const original = document.getElementById('original').value;
+    const revised = document.getElementById('revised').value;
+    const tokens = diff(tokenize(original), tokenize(revised));
+
+    let html = '';
+    let ins = 0, del = 0, eq = 0;
+
+    for (const tok of tokens) {
+      if (tok.type === 'ins') {
+        html += `<span class="ins">${escape(tok.text)}</span>`;
+        if (tok.text.trim()) ins++;
+      } else if (tok.type === 'del') {
+        html += `<span class="del">${escape(tok.text)}</span>`;
+        if (tok.text.trim()) del++;
+      } else {
+        html += escape(tok.text);
+        if (tok.text.trim()) eq++;
+      }
+    }
+
+    document.getElementById('diff-output').innerHTML = html;
+    document.getElementById('count-ins').textContent = ins;
+    document.getElementById('count-del').textContent = del;
+    document.getElementById('count-eq').textContent = eq;
+
+    const section = document.getElementById('result-section');
+    section.style.display = 'block';
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function copyResult() {
+    const output = document.getElementById('diff-output').innerText;
+    navigator.clipboard.writeText(output).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '✓ 복사됨';
+      setTimeout(() => { btn.innerHTML = orig; }, 1500);
+    });
+  }
+</script>
+</body>
+</html>

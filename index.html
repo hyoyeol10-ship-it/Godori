@@ -178,18 +178,53 @@
       font-weight: 500;
     }
 
-    .stat-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-    }
-
+    .stat-dot { width: 7px; height: 7px; border-radius: 50%; }
     .stat-count { font-weight: 700; }
     .stat-green .stat-count { color: var(--green); }
     .stat-red .stat-count { color: var(--red); }
     .stat-gray .stat-count { color: var(--secondary); }
 
-    #diff-output {
+    /* Split diff panels */
+    .diff-panels {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .diff-panel {
+      border-bottom: 1px solid var(--separator);
+    }
+    .diff-panel:last-child { border-bottom: none; }
+
+    .diff-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--separator);
+    }
+
+    .diff-panel-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .diff-panel-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+    .badge-del { background: var(--del-bg); color: var(--del-fg); }
+    .badge-ins { background: var(--ins-bg); color: var(--ins-fg); }
+
+    .diff-panel-content {
       padding: 14px;
       font-size: 15px;
       line-height: 1.8;
@@ -211,23 +246,6 @@
       border-radius: 3px;
       padding: 1px 2px;
     }
-
-    .copy-btn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: none;
-      border: 1px solid var(--separator);
-      border-radius: 8px;
-      color: var(--blue);
-      font-size: 13px;
-      font-weight: 500;
-      padding: 7px 12px;
-      cursor: pointer;
-      margin: 0 14px 14px;
-      transition: opacity 0.15s;
-    }
-    .copy-btn:active { opacity: 0.5; }
   </style>
 </head>
 <body>
@@ -290,13 +308,28 @@
         유지 <span class="stat-count" id="count-eq">0</span>
       </div>
     </div>
-    <div id="diff-output"></div>
-    <button class="copy-btn" onclick="copyResult()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-      </svg>
-      결과 텍스트 복사
-    </button>
+    <div class="diff-panels">
+      <div class="diff-panel">
+        <div class="diff-panel-header">
+          <div class="diff-panel-label">
+            <span class="dot dot-gray"></span>
+            초안
+          </div>
+          <span class="diff-panel-badge badge-del" id="badge-del">삭제 0</span>
+        </div>
+        <div class="diff-panel-content" id="diff-original"></div>
+      </div>
+      <div class="diff-panel">
+        <div class="diff-panel-header">
+          <div class="diff-panel-label">
+            <span class="dot dot-blue"></span>
+            수정안
+          </div>
+          <span class="diff-panel-badge badge-ins" id="badge-ins">추가 0</span>
+        </div>
+        <div class="diff-panel-content" id="diff-revised"></div>
+      </div>
+    </div>
   </div>
 </main>
 
@@ -366,40 +399,35 @@
     const revised = document.getElementById('revised').value;
     const tokens = diff(tokenize(original), tokenize(revised));
 
-    let html = '';
+    let origHtml = '', revHtml = '';
     let ins = 0, del = 0, eq = 0;
 
     for (const tok of tokens) {
+      const t = escape(tok.text);
       if (tok.type === 'ins') {
-        html += `<span class="ins">${escape(tok.text)}</span>`;
+        revHtml += `<span class="ins">${t}</span>`;
         if (tok.text.trim()) ins++;
       } else if (tok.type === 'del') {
-        html += `<span class="del">${escape(tok.text)}</span>`;
+        origHtml += `<span class="del">${t}</span>`;
         if (tok.text.trim()) del++;
       } else {
-        html += escape(tok.text);
+        origHtml += t;
+        revHtml += t;
         if (tok.text.trim()) eq++;
       }
     }
 
-    document.getElementById('diff-output').innerHTML = html;
+    document.getElementById('diff-original').innerHTML = origHtml;
+    document.getElementById('diff-revised').innerHTML = revHtml;
     document.getElementById('count-ins').textContent = ins;
     document.getElementById('count-del').textContent = del;
     document.getElementById('count-eq').textContent = eq;
+    document.getElementById('badge-del').textContent = `삭제 ${del}`;
+    document.getElementById('badge-ins').textContent = `추가 ${ins}`;
 
     const section = document.getElementById('result-section');
     section.style.display = 'block';
     section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
-  function copyResult() {
-    const output = document.getElementById('diff-output').innerText;
-    navigator.clipboard.writeText(output).then(() => {
-      const btn = document.querySelector('.copy-btn');
-      const orig = btn.innerHTML;
-      btn.innerHTML = '✓ 복사됨';
-      setTimeout(() => { btn.innerHTML = orig; }, 1500);
-    });
   }
 </script>
 </body>

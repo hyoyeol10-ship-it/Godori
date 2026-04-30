@@ -175,7 +175,7 @@ function resize() {
   camera.updateProjectionMatrix();
 }
 window.addEventListener('resize', resize);
-setTimeout(resize, 100);
+resize();
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.65));
 const sun = new THREE.DirectionalLight(0xfffaf0, 1.4);
@@ -255,9 +255,9 @@ const nose=Sph(0.04,CP,8); p(nose,0,1.24,0.41); catG.add(nose);
   const paw=Sph(0.12,CL2,8); p(paw,ex*1.1,0.88,0.5); catG.add(paw);
 });
 
-const tieV=new Float32Array([0,0.12,0,-0.09,0,0,0.09,0,0,-0.09,0,0,-0.06,-0.38,0,0,-0.32,0,0.09,0,0,0,-0.32,0,0.06,-0.38,0,-0.06,-0.38,0,0,-0.52,0,0.06,-0.38,0]);
-const tieG2=new THREE.BufferGeometry(); tieG2.setAttribute('position',new THREE.BufferAttribute(tieV,3)); tieG2.computeVertexNormals();
-const tie=new THREE.Mesh(tieG2,L(0xCC0000,{side:THREE.DoubleSide})); p(tie,0,0.75,0.5); catG.add(tie);
+const tieShape=new THREE.Shape();
+tieShape.moveTo(0,0.13); tieShape.lineTo(-0.11,0.02); tieShape.lineTo(-0.07,-0.40); tieShape.lineTo(0,-0.54); tieShape.lineTo(0.07,-0.40); tieShape.lineTo(0.11,0.02); tieShape.closePath();
+const tie=new THREE.Mesh(new THREE.ShapeGeometry(tieShape),L(0xCC0000,{side:THREE.DoubleSide})); p(tie,0,0.75,0.51); catG.add(tie);
 
 [-0.14,0.14].forEach(ex=>{
   const frame=new THREE.Mesh(new THREE.TorusGeometry(0.085,0.012,6,16),L(0x333333));
@@ -294,7 +294,23 @@ const PS=new THREE.Vector3(0,0.8,5.5);
 const PC1=new THREE.Vector3(2.5,5.5,2);
 const PC2=new THREE.Vector3(-1.5,4.5,-1);
 const PE=new THREE.Vector3(-0.2,2.1,-2.0);
-let catReacting=false,catReactT=0,lines=[],sent=0;
+let catReacting=false,catReactT=0,lines=[],sent=0,combo=0,comboTimer=0;
+
+const REACTIONS=[
+  ['ㅇㅋ','확인','알겠음','읽었음','👍','...','검토중','나중에'],
+  ['수고해','고마워','잘했어 🐾','오케이오케이'],
+  ['바빠 지금','잠깐만','급함?','우선순위 낮음'],
+  ['확인완료 ✓','승인 ✓','반려 ✗','재검토 요망'],
+  ['그만 좀 보내 😾','스팸이냐','차단할거야','메일함 꽉참 😤'],
+];
+function getReaction(){
+  if(sent>=15) return REACTIONS[4][Math.floor(Math.random()*REACTIONS[4].length)];
+  if(combo>=3) return ['콤보?! 🐱','연속이잖아','쉬지도 않네'][Math.floor(Math.random()*3)];
+  const pool=lines.some(l=>l.includes('감사')||l.includes('수고'))?REACTIONS[1]:
+              lines.some(l=>l.includes('빠른'))?REACTIONS[2]:
+              lines.some(l=>l.includes('확인'))?REACTIONS[3]:REACTIONS[0];
+  return pool[Math.floor(Math.random()*pool.length)];
+}
 
 function pick(btn){
   btn.classList.toggle('on');
@@ -317,8 +333,9 @@ function clearMail(){
 
 function send(){
   if(lines.length===0||planeFlying) return;
-  sent++;
-  document.getElementById('score').textContent=`📨 ${sent}통`;
+  sent++; combo++; comboTimer=2.5;
+  const suffix=combo>=3?` (${combo}연속!)`:'';
+  document.getElementById('score').textContent=`📨 ${sent}통${suffix}`;
   if(airplane) scene.remove(airplane);
   airplane=makePlane();
   airplane.position.copy(PS);
@@ -327,15 +344,17 @@ function send(){
   clearMail();
 }
 
+let currentReaction='ㅇㅋ';
 function showBubble(){
   const v=new THREE.Vector3(-0.3,2.5,-2.9);
   v.project(camera);
   const x=(v.x+1)/2*CW();
   const y=(1-v.y)/2*CH();
   const b=document.getElementById('bubble');
+  b.textContent=currentReaction;
   b.style.left=x+'px';b.style.top=y+'px';
   b.classList.add('show');
-  setTimeout(()=>b.classList.remove('show'),1600);
+  setTimeout(()=>b.classList.remove('show'),1800);
 }
 
 function bez(p0,p1,p2,p3,t){const k=1-t;return p0*k*k*k+3*p1*k*k*t+3*p2*k*t*t+p3*t*t*t;}
@@ -347,6 +366,7 @@ function loop(now){
   prevT=now;
   catG.position.y=1.61+Math.sin(t*1.4)*0.018;
   tailMesh.rotation.z=Math.sin(t*2.2)*0.12;
+  if(comboTimer>0){comboTimer-=dt;if(comboTimer<=0){combo=0;document.getElementById('score').textContent=`📨 ${sent}통`;}}
   if(catReacting){
     catReactT+=dt;
     catG.rotation.y=Math.sin(catReactT*18)*0.18;
@@ -361,7 +381,7 @@ function loop(now){
     airplane.rotation.y=t*4;
     airplane.rotation.x=Math.sin(pp*Math.PI)*0.6-0.3;
     airplane.scale.setScalar(1+Math.sin(pp*Math.PI)*0.4);
-    if(pp>=1){planeFlying=false;scene.remove(airplane);airplane=null;catReacting=true;catReactT=0;}
+    if(pp>=1){planeFlying=false;scene.remove(airplane);airplane=null;catReacting=true;catReactT=0;currentReaction=getReaction();}
   }
   renderer.render(scene,camera);
 }

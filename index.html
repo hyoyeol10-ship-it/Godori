@@ -191,12 +191,13 @@ scene.add(fill);
 
 const L = (color, opts) => new THREE.MeshLambertMaterial({ color, ...opts });
 function Box(w,h,d,mat){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.castShadow=true; m.receiveShadow=true; return m; }
-function Sph(r,mat,seg=14){ const m=new THREE.Mesh(new THREE.SphereGeometry(r,seg,seg),mat); m.castShadow=true; return m; }
+function Sph(r,mat,seg=16){ const m=new THREE.Mesh(new THREE.SphereGeometry(r,seg,seg),mat); m.castShadow=true; return m; }
 function Cyl(r,h,mat,seg=12){ const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg),mat); m.castShadow=true; return m; }
-function Cone(r,h,mat,seg=4){ const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,seg),mat); m.castShadow=true; return m; }
+function Cone(r,h,mat,seg=3){ const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,seg),mat); m.castShadow=true; return m; }
 function p(m,x,y,z){ m.position.set(x,y,z); return m; }
 function rv(m,x,y,z){ m.rotation.set(x,y,z); return m; }
 
+// 배경 환경
 const floor = new THREE.Mesh(new THREE.PlaneGeometry(30,30), L(0xC9A87A));
 floor.rotation.x = -Math.PI/2; floor.receiveShadow=true;
 scene.add(floor);
@@ -205,11 +206,13 @@ bwall.position.set(0,7,-11); scene.add(bwall);
 const rwall = new THREE.Mesh(new THREE.PlaneGeometry(30,14), L(0xF0E4D0));
 rwall.position.set(13,7,0); rwall.rotation.y=-Math.PI/2; scene.add(rwall);
 
+// 책상
 const deskG = new THREE.Group();
 deskG.add(p(Box(4.6,0.13,2.1,L(0x8B5E3C)),0,1.55,0));
 [[-2.1,0.76,-0.85],[2.1,0.76,-0.85],[-2.1,0.76,0.85],[2.1,0.76,0.85]].forEach(([x,y,z])=>deskG.add(p(Box(0.13,1.52,0.13,L(0x5C3A1A)),x,y,z)));
 deskG.position.z=-2.8; scene.add(deskG);
 
+// 모니터
 const monG = new THREE.Group();
 monG.add(p(Box(2.0,1.3,0.1,L(0x111122)),0,0.65,0));
 monG.add(p(Box(1.82,1.12,0.05,L(0x0066dd,{emissive:new THREE.Color(0x001133)})),0,0.65,0.08));
@@ -217,6 +220,7 @@ monG.add(p(Box(0.14,0.35,0.14,L(0x111122)),0,0,0));
 monG.add(p(Box(0.6,0.06,0.4,L(0x111122)),0,-0.15,0));
 monG.position.set(0.8,1.67,-4.6); scene.add(monG);
 
+// 의자
 const chairG = new THREE.Group();
 chairG.add(p(Box(1.3,0.1,1.3,L(0x2C3E50)),0,0.88,0));
 chairG.add(p(Box(1.3,1.1,0.1,L(0x253545)),0,1.43,-0.6));
@@ -224,57 +228,123 @@ chairG.add(p(Cyl(0.05,0.78,L(0x888888)),0,0.37,0));
 chairG.add(p(new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.05,5),L(0x888888)),0,0.02,0));
 chairG.position.set(0,0,-2.6); scene.add(chairG);
 
+// ── 귀여운 고양이 부장님 ──
 const catG = new THREE.Group();
-const CO=L(0xF5A623),CL2=L(0xFFE4B5),CD=L(0xD4881A),CP=L(0xFFAAAA),CB=L(0x111111),CW2=L(0xFFFFFF);
+const CO  = L(0xFFA07A); // 살구빛 주황 털
+const CL2 = L(0xFFF0DC); // 크림색 배/주둥이
+const CD  = L(0xD4642A); // 진한 주황 (수염, 줄무늬)
+const CP  = L(0xFFB3C6); // 분홍 (귀 속, 코, 홍조)
+const CB  = L(0x1A1A2E); // 눈동자 (짙은 남색)
+const CW2 = L(0xFFFFFF); // 흰자위 / 반짝이
+const CBLUSH = new THREE.MeshLambertMaterial({color:0xFF9999, transparent:true, opacity:0.48});
 
-const body=Sph(0.52,CO); body.scale.set(1,1.05,0.88); p(body,0,0.52,0); catG.add(body);
-const belly=Sph(0.33,CL2); belly.scale.set(1,1.15,0.55); p(belly,0,0.52,0.37); catG.add(belly);
-const head=Sph(0.42,CO); p(head,0,1.32,0); catG.add(head);
+// 통통한 몸통
+const body = Sph(0.56, CO); body.scale.set(1, 0.94, 0.92);
+p(body, 0, 0.56, 0); catG.add(body);
 
-[-0.27,0.27].forEach(ex=>{
-  const eo=Cone(0.15,0.28,CO); p(eo,ex,1.62,0); rv(eo,0,0,ex>0?0.35:-0.35); catG.add(eo);
-  const ei=Cone(0.08,0.17,CP); p(ei,ex*0.92,1.60,0.06); rv(ei,0.2,0,ex>0?0.35:-0.35); catG.add(ei);
+// 크림 배
+const belly = Sph(0.38, CL2); belly.scale.set(0.86, 1.0, 0.50);
+p(belly, 0, 0.56, 0.44); catG.add(belly);
+
+// ★ 크고 동글동글한 머리 (귀여움의 핵심)
+const head = Sph(0.58, CO);
+p(head, 0, 1.52, 0); catG.add(head);
+
+// 볼살 (고양이 뽀글뽀글 볼)
+[-0.40, 0.40].forEach(ex => {
+  const cheek = Sph(0.24, CO); cheek.scale.set(1, 0.80, 0.78);
+  p(cheek, ex, 1.47, 0.14); catG.add(cheek);
 });
 
-[-0.14,0.14].forEach(ex=>{
-  const eye=Sph(0.072,CB,10); p(eye,ex,1.34,0.37); catG.add(eye);
-  const shine=Sph(0.022,CW2,6); p(shine,ex+0.02,1.36,0.43); catG.add(shine);
+// 주둥이 (밝은 크림색)
+const muzzle = Sph(0.28, CL2); muzzle.scale.set(1, 0.68, 0.56);
+p(muzzle, 0, 1.43, 0.49); catG.add(muzzle);
+
+// ★ 귀 — 삼각형, 분홍 속귀
+[-0.42, 0.42].forEach(ex => {
+  const eo = Cone(0.24, 0.40, CO, 3);
+  p(eo, ex, 1.97, 0); rv(eo, 0, 0, ex > 0 ? 0.24 : -0.24); catG.add(eo);
+  const ei = Cone(0.13, 0.25, CP, 3);
+  p(ei, ex * 0.90, 1.95, 0.10); rv(ei, 0.22, 0, ex > 0 ? 0.24 : -0.24); catG.add(ei);
 });
 
-const nose=Sph(0.04,CP,8); p(nose,0,1.24,0.41); catG.add(nose);
+// ★ 크고 반짝이는 눈 (흰자 + 동공 + 반짝이 2개)
+[-0.23, 0.23].forEach(ex => {
+  const sclera = Sph(0.138, CW2, 14); sclera.scale.set(1, 1, 0.44);
+  p(sclera, ex, 1.56, 0.51); catG.add(sclera);
 
-[-1,0,1].forEach(row=>[-1,1].forEach(side=>{
-  const w=new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.004,0.42),CD);
-  w.position.set(side*0.25,1.24+row*0.03,0.37);
-  rv(w,0,0,Math.PI/2); w.rotation.x=row*0.12;
+  const pupil = Sph(0.095, CB, 12); pupil.scale.set(1, 1, 0.36);
+  p(pupil, ex, 1.56, 0.59); catG.add(pupil);
+
+  // 큰 반짝이
+  const sh1 = Sph(0.037, CW2, 8);
+  p(sh1, ex + 0.033, 1.595, 0.64); catG.add(sh1);
+  // 작은 반짝이
+  const sh2 = Sph(0.019, CW2, 6);
+  p(sh2, ex - 0.023, 1.530, 0.63); catG.add(sh2);
+});
+
+// 작고 귀여운 분홍 코
+const nose = Sph(0.048, CP, 10); nose.scale.set(1, 0.66, 0.58);
+p(nose, 0, 1.44, 0.58); catG.add(nose);
+
+// ★ 홍조 (귀여움 포인트)
+[-0.37, 0.37].forEach(ex => {
+  const blush = new THREE.Mesh(new THREE.SphereGeometry(0.118, 8, 8), CBLUSH);
+  blush.scale.set(1, 0.50, 0.26);
+  p(blush, ex, 1.44, 0.55); catG.add(blush);
+});
+
+// ★ 수염 (고양이 특성 — 굵고 선명하게)
+[-1, 0, 1].forEach(row => [-1, 1].forEach(side => {
+  const w = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.004, 0.58), CD);
+  w.position.set(side * 0.31, 1.44 + row * 0.044, 0.51);
+  rv(w, 0, 0, Math.PI / 2);
+  w.rotation.x = row * 0.10;
   catG.add(w);
 }));
 
-[-0.6,0.6].forEach(ex=>{
-  const arm=Cyl(0.1,0.42,CO); p(arm,ex,1.07,0.28); rv(arm,0.4,0,ex>0?-0.5:0.5); catG.add(arm);
-  const paw=Sph(0.12,CL2,8); p(paw,ex*1.1,0.88,0.5); catG.add(paw);
+// 통통한 앞발
+[-0.64, 0.64].forEach(ex => {
+  const arm = Cyl(0.12, 0.40, CO);
+  p(arm, ex, 1.11, 0.26); rv(arm, 0.44, 0, ex > 0 ? -0.44 : 0.44); catG.add(arm);
+  const paw = Sph(0.155, CL2, 12); paw.scale.set(1.10, 0.70, 1);
+  p(paw, ex * 1.18, 0.91, 0.55); catG.add(paw);
 });
 
-const tieShape=new THREE.Shape();
-tieShape.moveTo(0,0.13); tieShape.lineTo(-0.11,0.02); tieShape.lineTo(-0.07,-0.40); tieShape.lineTo(0,-0.54); tieShape.lineTo(0.07,-0.40); tieShape.lineTo(0.11,0.02); tieShape.closePath();
-const tie=new THREE.Mesh(new THREE.ShapeGeometry(tieShape),L(0xCC0000,{side:THREE.DoubleSide})); p(tie,0,0.75,0.51); catG.add(tie);
+// 넥타이 (부장님 포인트)
+const tieShape = new THREE.Shape();
+tieShape.moveTo(0, 0.13); tieShape.lineTo(-0.11, 0.02);
+tieShape.lineTo(-0.07, -0.40); tieShape.lineTo(0, -0.54);
+tieShape.lineTo(0.07, -0.40); tieShape.lineTo(0.11, 0.02);
+tieShape.closePath();
+const tie = new THREE.Mesh(new THREE.ShapeGeometry(tieShape), L(0xCC0000, {side: THREE.DoubleSide}));
+p(tie, 0, 0.83, 0.56); catG.add(tie);
 
-[-0.14,0.14].forEach(ex=>{
-  const frame=new THREE.Mesh(new THREE.TorusGeometry(0.085,0.012,6,16),L(0x333333));
-  p(frame,ex,1.34,0.4); rv(frame,Math.PI/2,0,0); catG.add(frame);
+// 동그란 안경 (부장님 포인트)
+[-0.20, 0.20].forEach(ex => {
+  const frame = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.013, 8, 22), L(0x333333));
+  p(frame, ex, 1.56, 0.60); rv(frame, Math.PI / 2, 0, 0); catG.add(frame);
 });
-const bridge=new THREE.Mesh(new THREE.CylinderGeometry(0.007,0.007,0.1),L(0x333333));
-rv(bridge,0,0,Math.PI/2); p(bridge,0,1.34,0.4); catG.add(bridge);
+const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.15), L(0x333333));
+rv(bridge, 0, 0, Math.PI / 2); p(bridge, 0, 1.56, 0.60); catG.add(bridge);
 
-const tailCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(0.5,0.35,-0.3),new THREE.Vector3(0.9,0.7,-0.1),new THREE.Vector3(1.1,1.0,0.1),new THREE.Vector3(0.85,1.2,0.2)]);
-const tailMesh=new THREE.Mesh(new THREE.TubeGeometry(tailCurve,10,0.065,8,false),CO);
-const tailTip=Sph(0.09,CL2,8); p(tailTip,0.85,1.2,0.2);
+// ★ 위로 살짝 올라간 꼬리 (고양이 특성)
+const tailCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0.48,  0.32, -0.32),
+  new THREE.Vector3(0.88,  0.70, -0.14),
+  new THREE.Vector3(1.12,  1.14,  0.08),
+  new THREE.Vector3(0.72,  1.46,  0.28),
+]);
+const tailMesh = new THREE.Mesh(new THREE.TubeGeometry(tailCurve, 12, 0.084, 8, false), CO);
+const tailTip = Sph(0.115, CL2, 10); p(tailTip, 0.72, 1.46, 0.28);
 catG.add(tailMesh); catG.add(tailTip);
-catG.position.set(-0.3,1.61,-2.9);
+catG.position.set(-0.3, 1.61, -2.9);
 scene.add(catG);
 
+// ── 종이비행기 ──
 function makePlane(){
-  const v=new Float32Array([
+  const v = new Float32Array([
     0,0.04,0.5,-0.38,0,-0.28,0,0.08,-0.22,
     0,0.04,0.5,0,0.08,-0.22,0.38,0,-0.28,
     0,0.04,0.5,-0.38,0,-0.28,0,-0.04,-0.1,
@@ -282,108 +352,88 @@ function makePlane(){
     -0.38,0,-0.28,0,-0.04,-0.1,0,0.08,-0.22,
     0.38,0,-0.28,0,0.08,-0.22,0,-0.04,-0.1,
   ]);
-  const g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.BufferAttribute(v,3));
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(v, 3));
   g.computeVertexNormals();
-  const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:0xFFFFFF,side:THREE.DoubleSide}));
-  m.castShadow=true; return m;
+  const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({color:0xFFFFFF, side:THREE.DoubleSide}));
+  m.castShadow = true; return m;
 }
 
-let airplane=null,planeT=0,planeFlying=false;
-const PS=new THREE.Vector3(0,0.8,5.5);
-const PC1=new THREE.Vector3(2.5,5.5,2);
-const PC2=new THREE.Vector3(-1.5,4.5,-1);
-const PE=new THREE.Vector3(-0.2,2.1,-2.0);
-let catReacting=false,catReactT=0,lines=[],sent=0,combo=0,comboTimer=0;
-
-const REACTIONS=[
-  ['ㅇㅋ','확인','알겠음','읽었음','👍','...','검토중','나중에'],
-  ['수고해','고마워','잘했어 🐾','오케이오케이'],
-  ['바빠 지금','잠깐만','급함?','우선순위 낮음'],
-  ['확인완료 ✓','승인 ✓','반려 ✗','재검토 요망'],
-  ['그만 좀 보내 😾','스팸이냐','차단할거야','메일함 꽉참 😤'],
-];
-function getReaction(){
-  if(sent>=15) return REACTIONS[4][Math.floor(Math.random()*REACTIONS[4].length)];
-  if(combo>=3) return ['콤보?! 🐱','연속이잖아','쉬지도 않네'][Math.floor(Math.random()*3)];
-  const pool=lines.some(l=>l.includes('감사')||l.includes('수고'))?REACTIONS[1]:
-              lines.some(l=>l.includes('빠른'))?REACTIONS[2]:
-              lines.some(l=>l.includes('확인'))?REACTIONS[3]:REACTIONS[0];
-  return pool[Math.floor(Math.random()*pool.length)];
-}
+let airplane=null, planeT=0, planeFlying=false;
+const PS  = new THREE.Vector3(0, 0.8, 5.5);
+const PC1 = new THREE.Vector3(2.5, 5.5, 2);
+const PC2 = new THREE.Vector3(-1.5, 4.5, -1);
+const PE  = new THREE.Vector3(-0.2, 2.1, -2.0);
+let catReacting=false, catReactT=0, lines=[], sent=0;
 
 function pick(btn){
   btn.classList.toggle('on');
-  const txt=btn.textContent.trim();
+  const txt = btn.textContent.trim();
   if(btn.classList.contains('on')) lines.push(txt);
-  else lines=lines.filter(l=>l!==txt);
-  const prev=document.getElementById('preview');
-  if(lines.length===0){prev.textContent='문구를 선택하세요';prev.className='empty';}
-  else{prev.textContent=lines.join(' ');prev.className='';}
-  document.getElementById('sendBtn').disabled=lines.length===0;
+  else lines = lines.filter(l => l !== txt);
+  const prev = document.getElementById('preview');
+  if(lines.length===0){ prev.textContent='문구를 선택하세요'; prev.className='empty'; }
+  else { prev.textContent=lines.join(' '); prev.className=''; }
+  document.getElementById('sendBtn').disabled = lines.length===0;
 }
 
 function clearMail(){
-  lines=[];
-  document.querySelectorAll('.ph').forEach(b=>b.classList.remove('on'));
-  const prev=document.getElementById('preview');
-  prev.textContent='문구를 선택하세요';prev.className='empty';
-  document.getElementById('sendBtn').disabled=true;
+  lines = [];
+  document.querySelectorAll('.ph').forEach(b => b.classList.remove('on'));
+  const prev = document.getElementById('preview');
+  prev.textContent='문구를 선택하세요'; prev.className='empty';
+  document.getElementById('sendBtn').disabled = true;
 }
 
 function send(){
-  if(lines.length===0||planeFlying) return;
-  sent++; combo++; comboTimer=2.5;
-  const suffix=combo>=3?` (${combo}연속!)`:'';
-  document.getElementById('score').textContent=`📨 ${sent}통${suffix}`;
+  if(lines.length===0 || planeFlying) return;
+  sent++;
+  document.getElementById('score').textContent = `📨 ${sent}통`;
   if(airplane) scene.remove(airplane);
-  airplane=makePlane();
+  airplane = makePlane();
   airplane.position.copy(PS);
   scene.add(airplane);
-  planeT=0;planeFlying=true;
+  planeT=0; planeFlying=true;
   clearMail();
 }
 
-let currentReaction='ㅇㅋ';
 function showBubble(){
-  const v=new THREE.Vector3(-0.3,2.5,-2.9);
+  const v = new THREE.Vector3(-0.3, 3.35, -2.9);
   v.project(camera);
-  const x=(v.x+1)/2*CW();
-  const y=(1-v.y)/2*CH();
-  const b=document.getElementById('bubble');
-  b.textContent=currentReaction;
-  b.style.left=x+'px';b.style.top=y+'px';
+  const x = (v.x+1)/2 * CW();
+  const y = (1-v.y)/2 * CH();
+  const b = document.getElementById('bubble');
+  b.style.left = x+'px'; b.style.top = y+'px';
   b.classList.add('show');
-  setTimeout(()=>b.classList.remove('show'),1800);
+  setTimeout(()=>b.classList.remove('show'), 1600);
 }
 
-function bez(p0,p1,p2,p3,t){const k=1-t;return p0*k*k*k+3*p1*k*k*t+3*p2*k*t*t+p3*t*t*t;}
+function bez(p0,p1,p2,p3,t){ const k=1-t; return p0*k*k*k+3*p1*k*k*t+3*p2*k*t*t+p3*t*t*t; }
 
-let prevT=performance.now();
+let prevT = performance.now();
 function loop(now){
   requestAnimationFrame(loop);
-  const dt=Math.min((now-prevT)/1000,0.05),t=now/1000;
+  const dt=Math.min((now-prevT)/1000,0.05), t=now/1000;
   prevT=now;
-  catG.position.y=1.61+Math.sin(t*1.4)*0.018;
-  tailMesh.rotation.z=Math.sin(t*2.2)*0.12;
-  if(comboTimer>0){comboTimer-=dt;if(comboTimer<=0){combo=0;document.getElementById('score').textContent=`📨 ${sent}통`;}}
+  catG.position.y = 1.61 + Math.sin(t*1.4)*0.018;
+  tailMesh.rotation.z = Math.sin(t*2.2)*0.14;
   if(catReacting){
-    catReactT+=dt;
-    catG.rotation.y=Math.sin(catReactT*18)*0.18;
-    if(catReactT>0.55){catReacting=false;catReactT=0;catG.rotation.y=0;showBubble();}
+    catReactT += dt;
+    catG.rotation.y = Math.sin(catReactT*18)*0.18;
+    if(catReactT>0.55){ catReacting=false; catReactT=0; catG.rotation.y=0; showBubble(); }
   }
-  if(planeFlying&&airplane){
-    planeT+=dt*0.55;
-    const pp=Math.min(planeT,1);
-    airplane.position.x=bez(PS.x,PC1.x,PC2.x,PE.x,pp);
-    airplane.position.y=bez(PS.y,PC1.y,PC2.y,PE.y,pp);
-    airplane.position.z=bez(PS.z,PC1.z,PC2.z,PE.z,pp);
-    airplane.rotation.y=t*4;
-    airplane.rotation.x=Math.sin(pp*Math.PI)*0.6-0.3;
+  if(planeFlying && airplane){
+    planeT += dt*0.55;
+    const pp = Math.min(planeT, 1);
+    airplane.position.x = bez(PS.x,PC1.x,PC2.x,PE.x,pp);
+    airplane.position.y = bez(PS.y,PC1.y,PC2.y,PE.y,pp);
+    airplane.position.z = bez(PS.z,PC1.z,PC2.z,PE.z,pp);
+    airplane.rotation.y = t*4;
+    airplane.rotation.x = Math.sin(pp*Math.PI)*0.6-0.3;
     airplane.scale.setScalar(1+Math.sin(pp*Math.PI)*0.4);
-    if(pp>=1){planeFlying=false;scene.remove(airplane);airplane=null;catReacting=true;catReactT=0;currentReaction=getReaction();}
+    if(pp>=1){ planeFlying=false; scene.remove(airplane); airplane=null; catReacting=true; catReactT=0; }
   }
-  renderer.render(scene,camera);
+  renderer.render(scene, camera);
 }
 requestAnimationFrame(loop);
 </script>

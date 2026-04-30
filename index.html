@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>고양이 상사에게 이메일 보내기</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 16px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      color: #444;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #999;
+      margin-bottom: 28px;
+    }
+
+    .game-wrapper {
+      display: flex;
+      gap: 24px;
+      width: 100%;
+      max-width: 860px;
+      align-items: flex-start;
+    }
+
+    /* ── 이메일 작성 패널 ── */
+    .compose {
+      flex: 1;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    .compose-header {
+      background: #5b6af0;
+      color: white;
+      padding: 14px 20px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .compose-to {
+      padding: 12px 20px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.85rem;
+      color: #777;
+    }
+
+    .compose-to span {
+      color: #5b6af0;
+      font-weight: 600;
+    }
+
+    .compose-body {
+      padding: 16px 20px;
+      min-height: 120px;
+      font-size: 0.9rem;
+      color: #333;
+      line-height: 1.7;
+    }
+
+    .compose-body .placeholder {
+      color: #ccc;
+      font-style: italic;
+    }
+
+    .phrase-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 16px 20px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .phrase-btn {
+      background: #f7f8ff;
+      border: 2px solid #dde;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #444;
+      text-align: left;
+    }
+
+    .phrase-btn:hover {
+      background: #eef0ff;
+      border-color: #5b6af0;
+      color: #5b6af0;
+    }
+
+    .phrase-btn:active {
+      transform: scale(0.97);
+    }
+
+    .compose-actions {
+      padding: 14px 20px;
+      display: flex;
+      gap: 10px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .btn-send {
+      background: #5b6af0;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 22px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-send:hover { background: #4a59e0; }
+    .btn-send:disabled { background: #bbb; cursor: default; }
+
+    .btn-clear {
+      background: white;
+      color: #aaa;
+      border: 2px solid #eee;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-clear:hover { border-color: #ccc; color: #777; }
+
+    /* ── 고양이 상사 패널 ── */
+    .boss-panel {
+      width: 260px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .boss-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      padding: 24px 20px;
+      text-align: center;
+    }
+
+    .cat-face {
+      font-size: 5rem;
+      line-height: 1;
+      margin-bottom: 8px;
+      display: block;
+      transition: transform 0.3s;
+    }
+
+    .cat-face.shake {
+      animation: shake 0.5s;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: rotate(0deg); }
+      20% { transform: rotate(-10deg); }
+      40% { transform: rotate(10deg); }
+      60% { transform: rotate(-8deg); }
+      80% { transform: rotate(6deg); }
+    }
+
+    .boss-name {
+      font-weight: 700;
+      color: #333;
+      font-size: 1rem;
+    }
+
+    .boss-title {
+      font-size: 0.78rem;
+      color: #999;
+      margin-top: 2px;
+    }
+
+    .boss-mood {
+      margin-top: 12px;
+      font-size: 0.82rem;
+      background: #fff8e8;
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: #c87a00;
+    }
+
+    /* ── 답장 말풍선 ── */
+    .reply-box {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      padding: 16px 18px;
+      min-height: 80px;
+      position: relative;
+    }
+
+    .reply-box::before {
+      content: '';
+      position: absolute;
+      top: -10px;
+      left: 30px;
+      border-width: 0 10px 10px;
+      border-style: solid;
+      border-color: transparent transparent white;
+    }
+
+    .reply-label {
+      font-size: 0.75rem;
+      color: #aaa;
+      margin-bottom: 6px;
+    }
+
+    .reply-text {
+      font-size: 0.95rem;
+      color: #333;
+      font-weight: 600;
+      line-height: 1.5;
+      min-height: 40px;
+    }
+
+    .reply-text.idle {
+      color: #ccc;
+      font-weight: 400;
+      font-style: italic;
+      font-size: 0.85rem;
+    }
+
+    /* ── 이메일 히스토리 ── */
+    .history {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      overflow: hidden;
+      width: 100%;
+      max-width: 860px;
+      margin-top: 20px;
+    }
+
+    .history-header {
+      padding: 12px 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #777;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .history-list {
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      padding: 12px 20px;
+      border-bottom: 1px solid #f8f8f8;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .history-item:last-child { border-bottom: none; }
+
+    .history-sent {
+      flex: 1;
+      font-size: 0.82rem;
+      color: #555;
+      background: #f7f8ff;
+      border-radius: 8px;
+      padding: 6px 10px;
+    }
+
+    .history-arrow {
+      color: #ccc;
+      font-size: 1.1rem;
+      padding-top: 4px;
+    }
+
+    .history-reply {
+      flex: 1;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #5b6af0;
+      background: #f0f4ff;
+      border-radius: 8px;
+      padding: 6px 10px;
+    }
+
+    .empty-history {
+      padding: 24px;
+      text-align: center;
+      color: #ccc;
+      font-size: 0.85rem;
+    }
+
+    /* ── 점수 뱃지 ── */
+    .score-badge {
+      position: fixed;
+      top: 20px;
+      right: 24px;
+      background: #5b6af0;
+      color: white;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(91,106,240,0.4);
+    }
+
+    /* ── 알림 토스트 ── */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #333;
+      color: white;
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      transition: transform 0.3s;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📧 고양이 상사에게 이메일 보내기</h1>
+  <p class="subtitle">열심히 보내도 답장은 항상 고양이어</p>
+
+  <div class="score-badge">📨 보낸 메일: <span id="score">0</span>통</div>
+
+  <div class="game-wrapper">
+    <!-- 이메일 작성 -->
+    <div class="compose">
+      <div class="compose-header">✉️ 새 메일 작성</div>
+      <div class="compose-to">받는 사람: <span>🐱 냥 부장님 &lt;meow@company.cat&gt;</span></div>
+      <div class="compose-body" id="bodyPreview">
+        <span class="placeholder">아래 문구를 눌러 이메일을 작성하세요</span>
+      </div>
+
+      <div class="phrase-grid">
+        <button class="phrase-btn" onclick="addPhrase(this)">안녕하세요, 부장님.</button>
+        <button class="phrase-btn" onclick="addPhrase(this)">수고하셨습니다!</button>
+        <button class="phrase-btn" onclick="addPhrase(this)">확인 부탁드립니다.</button>
+        <button class="phrase-btn" onclick="addPhrase(this)">감사합니다.</button>
+        <button class="phrase-btn" onclick="addPhrase(this)">빠른 처리 부탁드립니다.</button>
+        <button class="phrase-btn" onclick="addPhrase(this)">말씀하신 대로 진행했습니다.</button>
+        <button class="phrase-btn" onclick="addPhrase(this)">잘 부탁드립니다 🙏</button>
+        <button class="phrase-btn" onclick="addPhrase(this)">이번 주 안으로 가능할까요?</button>
+      </div>
+
+      <div class="compose-actions">
+        <button class="btn-send" id="sendBtn" onclick="sendEmail()" disabled>보내기 📤</button>
+        <button class="btn-clear" onclick="clearEmail()">지우기</button>
+      </div>
+    </div>
+
+    <!-- 고양이 상사 -->
+    <div class="boss-panel">
+      <div class="boss-card">
+        <span class="cat-face" id="catFace">😼</span>
+        <div class="boss-name">냥 부장</div>
+        <div class="boss-title">고양이주식회사 · 부장 (추정)</div>
+        <div class="boss-mood" id="bossMood">💤 낮잠 중</div>
+      </div>
+
+      <div class="reply-box">
+        <div class="reply-label">냥 부장님의 답장</div>
+        <div class="reply-text idle" id="replyText">아직 아무것도 안 보냈잖아요</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 히스토리 -->
+  <div class="history">
+    <div class="history-header">📂 보낸 메일함</div>
+    <div class="history-list" id="historyList">
+      <div class="empty-history" id="emptyHistory">아직 보낸 메일이 없어요</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const catReplies = [
+      "야옹.",
+      "냥.",
+      "...야옹?",
+      "그루릉.",
+      "냐앙~",
+      "야옹야옹.",
+      "냥냥냥.",
+      "...zzz",
+      "하악.",
+      "냥? (발로 밀어버림)",
+      "야옹. (읽씹)",
+      "냐. (그루밍 시작)",
+      "야옹야옹야옹.",
+      "...냥 (뒤돌아앉음)",
+      "그루릉냥.",
+      "냥! (책상 위 물건 밀어버림)",
+      "야옹. ㅇㅋ",
+      "냐앙. (눈 감아버림)",
+      "야옹. (화분 밀어버림)",
+      "냥냥. 수고해요.",
+    ];
+
+    const catMoods = [
+      { emoji: "😼", mood: "💤 낮잠 중" },
+      { emoji: "🐱", mood: "🐟 간식 생각 중" },
+      { emoji: "😺", mood: "😌 그루밍 중" },
+      { emoji: "🙀", mood: "😤 화났음 (이유 없음)" },
+      { emoji: "😸", mood: "🪟 창밖 구경 중" },
+      { emoji: "😾", mood: "😑 그냥 기분 나쁨" },
+      { emoji: "🐈", mood: "📦 박스 들어감" },
+    ];
+
+    let emailLines = [];
+    let sendCount = 0;
+
+    function addPhrase(btn) {
+      const phrase = btn.textContent.trim();
+      emailLines.push(phrase);
+      renderBody();
+      document.getElementById('sendBtn').disabled = false;
+    }
+
+    function renderBody() {
+      const preview = document.getElementById('bodyPreview');
+      if (emailLines.length === 0) {
+        preview.innerHTML = '<span class="placeholder">아래 문구를 눌러 이메일을 작성하세요</span>';
+      } else {
+        preview.innerHTML = emailLines.map(l => `<div>${l}</div>`).join('');
+      }
+    }
+
+    function clearEmail() {
+      emailLines = [];
+      renderBody();
+      document.getElementById('sendBtn').disabled = true;
+    }
+
+    function sendEmail() {
+      if (emailLines.length === 0) return;
+
+      const sent = emailLines.join(' ');
+      const reply = catReplies[Math.floor(Math.random() * catReplies.length)];
+      const moodData = catMoods[Math.floor(Math.random() * catMoods.length)];
+
+      sendCount++;
+      document.getElementById('score').textContent = sendCount;
+
+      // 상사 반응
+      const face = document.getElementById('catFace');
+      face.textContent = moodData.emoji;
+      face.classList.remove('shake');
+      void face.offsetWidth;
+      face.classList.add('shake');
+      document.getElementById('bossMood').textContent = moodData.mood;
+
+      const replyEl = document.getElementById('replyText');
+      replyEl.classList.remove('idle');
+      replyEl.textContent = reply;
+
+      // 히스토리
+      const list = document.getElementById('historyList');
+      const empty = document.getElementById('emptyHistory');
+      if (empty) empty.remove();
+
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.innerHTML = `
+        <div class="history-sent">${sent}</div>
+        <div class="history-arrow">→</div>
+        <div class="history-reply">🐱 "${reply}"</div>
+      `;
+      list.prepend(item);
+
+      // 특별 토스트
+      if (sendCount === 5) showToast("5통 보냄. 부장님 여전히 야옹.");
+      else if (sendCount === 10) showToast("10통... 이게 직장생활이다.");
+      else if (sendCount === 20) showToast("20통. 당신은 진정한 직장인입니다 🏆");
+      else if (sendCount === 50) showToast("50통?????? 퇴근하세요 진짜로");
+
+      clearEmail();
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+  </script>
+</body>
+</html>

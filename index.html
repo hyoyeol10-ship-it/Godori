@@ -1,527 +1,371 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>고양이 상사에게 이메일 보내기</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>고양이 상사 3D</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; background: #87CEEB; font-family: 'Segoe UI', sans-serif; }
+    canvas { display: block; }
 
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f0f4f8;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 30px 16px;
-    }
-
-    h1 {
-      font-size: 1.4rem;
-      color: #444;
-      margin-bottom: 6px;
-    }
-
-    .subtitle {
-      font-size: 0.85rem;
-      color: #999;
-      margin-bottom: 28px;
-    }
-
-    .game-wrapper {
-      display: flex;
-      gap: 24px;
-      width: 100%;
-      max-width: 860px;
-      align-items: flex-start;
-    }
-
-    /* ── 이메일 작성 패널 ── */
-    .compose {
-      flex: 1;
+    #bubble {
+      position: fixed;
       background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      overflow: hidden;
+      border-radius: 14px;
+      padding: 10px 20px;
+      font-size: 2rem;
+      font-weight: 900;
+      color: #222;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      transform: translate(-50%, -100%) translateY(-12px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+      white-space: nowrap;
+      z-index: 200;
+    }
+    #bubble.show { opacity: 1; }
+    #bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -9px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 9px solid transparent;
+      border-top-color: white;
+      border-bottom: 0;
     }
 
-    .compose-header {
-      background: #5b6af0;
+    #score {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.5);
       color: white;
-      padding: 14px 20px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.82rem;
       font-weight: 700;
-      font-size: 0.95rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      z-index: 200;
     }
 
-    .compose-to {
-      padding: 12px 20px;
-      border-bottom: 1px solid #f0f0f0;
-      font-size: 0.85rem;
-      color: #777;
+    #ui {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(14px);
+      border-radius: 22px 22px 0 0;
+      padding: 14px 14px 20px;
+      box-shadow: 0 -4px 30px rgba(0,0,0,0.13);
+      z-index: 100;
     }
 
-    .compose-to span {
-      color: #5b6af0;
-      font-weight: 600;
-    }
+    .to-line { font-size: 0.72rem; color: #bbb; margin-bottom: 7px; }
+    .to-line b { color: #5b6af0; }
 
-    .compose-body {
-      padding: 16px 20px;
-      min-height: 120px;
-      font-size: 0.9rem;
-      color: #333;
-      line-height: 1.7;
+    #preview {
+      font-size: 0.75rem;
+      color: #555;
+      background: #f4f5ff;
+      border-radius: 8px;
+      padding: 6px 10px;
+      min-height: 26px;
+      margin-bottom: 8px;
+      line-height: 1.4;
     }
+    #preview.empty { color: #ccc; font-style: italic; }
 
-    .compose-body .placeholder {
-      color: #ccc;
-      font-style: italic;
-    }
-
-    .phrase-grid {
+    .grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      padding: 16px 20px;
-      border-top: 1px solid #f0f0f0;
+      gap: 5px;
+      margin-bottom: 8px;
     }
 
-    .phrase-btn {
+    .ph {
       background: #f7f8ff;
-      border: 2px solid #dde;
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: 0.82rem;
+      border: 1.5px solid #e0e0f0;
+      border-radius: 9px;
+      padding: 8px 4px;
+      font-size: 0.72rem;
       cursor: pointer;
-      transition: all 0.15s;
       color: #444;
-      text-align: left;
+      text-align: center;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.12s;
     }
+    .ph.on { background: #eef0ff; border-color: #5b6af0; color: #4a59e0; font-weight: 700; }
 
-    .phrase-btn:hover {
-      background: #eef0ff;
-      border-color: #5b6af0;
-      color: #5b6af0;
-    }
+    .row { display: flex; gap: 8px; }
 
-    .phrase-btn:active {
-      transform: scale(0.97);
-    }
-
-    .compose-actions {
-      padding: 14px 20px;
-      display: flex;
-      gap: 10px;
-      border-top: 1px solid #f0f0f0;
-    }
-
-    .btn-send {
+    #sendBtn {
+      flex: 1;
       background: #5b6af0;
       color: white;
       border: none;
-      border-radius: 10px;
-      padding: 10px 22px;
-      font-size: 0.9rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .btn-send:hover { background: #4a59e0; }
-    .btn-send:disabled { background: #bbb; cursor: default; }
-
-    .btn-clear {
-      background: white;
-      color: #aaa;
-      border: 2px solid #eee;
-      border-radius: 10px;
-      padding: 10px 16px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .btn-clear:hover { border-color: #ccc; color: #777; }
-
-    /* ── 고양이 상사 패널 ── */
-    .boss-panel {
-      width: 260px;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .boss-card {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      padding: 24px 20px;
-      text-align: center;
-    }
-
-    .cat-face {
-      font-size: 5rem;
-      line-height: 1;
-      margin-bottom: 8px;
-      display: block;
-      transition: transform 0.3s;
-    }
-
-    .cat-face.shake {
-      animation: shake 0.5s;
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: rotate(0deg); }
-      20% { transform: rotate(-10deg); }
-      40% { transform: rotate(10deg); }
-      60% { transform: rotate(-8deg); }
-      80% { transform: rotate(6deg); }
-    }
-
-    .boss-name {
-      font-weight: 700;
-      color: #333;
-      font-size: 1rem;
-    }
-
-    .boss-title {
-      font-size: 0.78rem;
-      color: #999;
-      margin-top: 2px;
-    }
-
-    .boss-mood {
-      margin-top: 12px;
-      font-size: 0.82rem;
-      background: #fff8e8;
-      border-radius: 8px;
-      padding: 6px 10px;
-      color: #c87a00;
-    }
-
-    /* ── 답장 말풍선 ── */
-    .reply-box {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      padding: 16px 18px;
-      min-height: 80px;
-      position: relative;
-    }
-
-    .reply-box::before {
-      content: '';
-      position: absolute;
-      top: -10px;
-      left: 30px;
-      border-width: 0 10px 10px;
-      border-style: solid;
-      border-color: transparent transparent white;
-    }
-
-    .reply-label {
-      font-size: 0.75rem;
-      color: #aaa;
-      margin-bottom: 6px;
-    }
-
-    .reply-text {
-      font-size: 0.95rem;
-      color: #333;
-      font-weight: 600;
-      line-height: 1.5;
-      min-height: 40px;
-    }
-
-    .reply-text.idle {
-      color: #ccc;
-      font-weight: 400;
-      font-style: italic;
-      font-size: 0.85rem;
-    }
-
-    /* ── 이메일 히스토리 ── */
-    .history {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      overflow: hidden;
-      width: 100%;
-      max-width: 860px;
-      margin-top: 20px;
-    }
-
-    .history-header {
-      padding: 12px 20px;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #777;
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    .history-list {
-      max-height: 240px;
-      overflow-y: auto;
-    }
-
-    .history-item {
-      padding: 12px 20px;
-      border-bottom: 1px solid #f8f8f8;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      animation: fadeIn 0.3s;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .history-item:last-child { border-bottom: none; }
-
-    .history-sent {
-      flex: 1;
-      font-size: 0.82rem;
-      color: #555;
-      background: #f7f8ff;
-      border-radius: 8px;
-      padding: 6px 10px;
-    }
-
-    .history-arrow {
-      color: #ccc;
-      font-size: 1.1rem;
-      padding-top: 4px;
-    }
-
-    .history-reply {
-      flex: 1;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #5b6af0;
-      background: #f0f4ff;
-      border-radius: 8px;
-      padding: 6px 10px;
-    }
-
-    .empty-history {
-      padding: 24px;
-      text-align: center;
-      color: #ccc;
-      font-size: 0.85rem;
-    }
-
-    /* ── 점수 뱃지 ── */
-    .score-badge {
-      position: fixed;
-      top: 20px;
-      right: 24px;
-      background: #5b6af0;
-      color: white;
-      border-radius: 20px;
-      padding: 8px 16px;
-      font-size: 0.85rem;
-      font-weight: 700;
-      box-shadow: 0 4px 14px rgba(91,106,240,0.4);
-    }
-
-    /* ── 알림 토스트 ── */
-    .toast {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%) translateY(80px);
-      background: #333;
-      color: white;
-      padding: 12px 22px;
       border-radius: 12px;
-      font-size: 0.9rem;
-      transition: transform 0.3s;
-      pointer-events: none;
-      white-space: nowrap;
+      padding: 12px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
+    #sendBtn:disabled { background: #c8c8c8; }
 
-    .toast.show {
-      transform: translateX(-50%) translateY(0);
+    #clearBtn {
+      background: #f0f0f0;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 0.8rem;
+      color: #999;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
   </style>
 </head>
 <body>
 
-  <h1>📧 고양이 상사에게 이메일 보내기</h1>
-  <p class="subtitle">열심히 보내도 답장은 항상 고양이어</p>
+<canvas id="c"></canvas>
+<div id="bubble">ㅇㅋ</div>
+<div id="score">📨 0통</div>
 
-  <div class="score-badge">📨 보낸 메일: <span id="score">0</span>통</div>
-
-  <div class="game-wrapper">
-    <!-- 이메일 작성 -->
-    <div class="compose">
-      <div class="compose-header">✉️ 새 메일 작성</div>
-      <div class="compose-to">받는 사람: <span>🐱 냥 부장님 &lt;meow@company.cat&gt;</span></div>
-      <div class="compose-body" id="bodyPreview">
-        <span class="placeholder">아래 문구를 눌러 이메일을 작성하세요</span>
-      </div>
-
-      <div class="phrase-grid">
-        <button class="phrase-btn" onclick="addPhrase(this)">안녕하세요, 부장님.</button>
-        <button class="phrase-btn" onclick="addPhrase(this)">수고하셨습니다!</button>
-        <button class="phrase-btn" onclick="addPhrase(this)">확인 부탁드립니다.</button>
-        <button class="phrase-btn" onclick="addPhrase(this)">감사합니다.</button>
-        <button class="phrase-btn" onclick="addPhrase(this)">빠른 처리 부탁드립니다.</button>
-        <button class="phrase-btn" onclick="addPhrase(this)">말씀하신 대로 진행했습니다.</button>
-        <button class="phrase-btn" onclick="addPhrase(this)">잘 부탁드립니다 🙏</button>
-        <button class="phrase-btn" onclick="addPhrase(this)">이번 주 안으로 가능할까요?</button>
-      </div>
-
-      <div class="compose-actions">
-        <button class="btn-send" id="sendBtn" onclick="sendEmail()" disabled>보내기 📤</button>
-        <button class="btn-clear" onclick="clearEmail()">지우기</button>
-      </div>
-    </div>
-
-    <!-- 고양이 상사 -->
-    <div class="boss-panel">
-      <div class="boss-card">
-        <span class="cat-face" id="catFace">😼</span>
-        <div class="boss-name">냥 부장</div>
-        <div class="boss-title">고양이주식회사 · 부장 (추정)</div>
-        <div class="boss-mood" id="bossMood">💤 낮잠 중</div>
-      </div>
-
-      <div class="reply-box">
-        <div class="reply-label">냥 부장님의 답장</div>
-        <div class="reply-text idle" id="replyText">아직 아무것도 안 보냈잖아요</div>
-      </div>
-    </div>
+<div id="ui">
+  <div class="to-line">To: <b>🐱 냥 부장님 &lt;meow@company.cat&gt;</b></div>
+  <div id="preview" class="empty">문구를 선택하세요</div>
+  <div class="grid">
+    <button class="ph" onclick="pick(this)">안녕하세요, 부장님.</button>
+    <button class="ph" onclick="pick(this)">수고하셨습니다!</button>
+    <button class="ph" onclick="pick(this)">확인 부탁드립니다.</button>
+    <button class="ph" onclick="pick(this)">감사합니다.</button>
+    <button class="ph" onclick="pick(this)">빠른 처리 부탁드립니다.</button>
+    <button class="ph" onclick="pick(this)">잘 부탁드립니다 🙏</button>
   </div>
-
-  <!-- 히스토리 -->
-  <div class="history">
-    <div class="history-header">📂 보낸 메일함</div>
-    <div class="history-list" id="historyList">
-      <div class="empty-history" id="emptyHistory">아직 보낸 메일이 없어요</div>
-    </div>
+  <div class="row">
+    <button id="sendBtn" onclick="send()" disabled>보내기 📤</button>
+    <button id="clearBtn" onclick="clearMail()">지우기</button>
   </div>
+</div>
 
-  <div class="toast" id="toast"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script>
+const UI_H = () => document.getElementById('ui').offsetHeight + 10;
+const CW = () => window.innerWidth;
+const CH = () => window.innerHeight - UI_H();
 
-  <script>
-    const catReplies = [
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-      "ㅇㅋ",
-    ];
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    const catMoods = [
-      { emoji: "😼", mood: "💤 낮잠 중" },
-      { emoji: "🐱", mood: "🐟 간식 생각 중" },
-      { emoji: "😺", mood: "😌 그루밍 중" },
-      { emoji: "🙀", mood: "😤 화났음 (이유 없음)" },
-      { emoji: "😸", mood: "🪟 창밖 구경 중" },
-      { emoji: "😾", mood: "😑 그냥 기분 나쁨" },
-      { emoji: "🐈", mood: "📦 박스 들어감" },
-    ];
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
+scene.fog = new THREE.Fog(0x87CEEB, 18, 40);
 
-    let emailLines = [];
-    let sendCount = 0;
+const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 100);
+camera.position.set(0, 3.2, 8.5);
+camera.lookAt(0, 1.5, 0);
 
-    function addPhrase(btn) {
-      const phrase = btn.textContent.trim();
-      emailLines.push(phrase);
-      renderBody();
-      document.getElementById('sendBtn').disabled = false;
-    }
+function resize() {
+  const w = CW(), h = CH();
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+setTimeout(resize, 100);
 
-    function renderBody() {
-      const preview = document.getElementById('bodyPreview');
-      if (emailLines.length === 0) {
-        preview.innerHTML = '<span class="placeholder">아래 문구를 눌러 이메일을 작성하세요</span>';
-      } else {
-        preview.innerHTML = emailLines.map(l => `<div>${l}</div>`).join('');
-      }
-    }
+scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+const sun = new THREE.DirectionalLight(0xfffaf0, 1.4);
+sun.position.set(6, 10, 7);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -10; sun.shadow.camera.right = 10;
+sun.shadow.camera.top = 10; sun.shadow.camera.bottom = -10;
+scene.add(sun);
+const fill = new THREE.PointLight(0x8899ff, 0.45, 20);
+fill.position.set(-5, 5, 3);
+scene.add(fill);
 
-    function clearEmail() {
-      emailLines = [];
-      renderBody();
-      document.getElementById('sendBtn').disabled = true;
-    }
+const L = (color, opts) => new THREE.MeshLambertMaterial({ color, ...opts });
+function Box(w,h,d,mat){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.castShadow=true; m.receiveShadow=true; return m; }
+function Sph(r,mat,seg=14){ const m=new THREE.Mesh(new THREE.SphereGeometry(r,seg,seg),mat); m.castShadow=true; return m; }
+function Cyl(r,h,mat,seg=12){ const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg),mat); m.castShadow=true; return m; }
+function Cone(r,h,mat,seg=4){ const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,seg),mat); m.castShadow=true; return m; }
+function p(m,x,y,z){ m.position.set(x,y,z); return m; }
+function rv(m,x,y,z){ m.rotation.set(x,y,z); return m; }
 
-    function sendEmail() {
-      if (emailLines.length === 0) return;
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(30,30), L(0xC9A87A));
+floor.rotation.x = -Math.PI/2; floor.receiveShadow=true;
+scene.add(floor);
+const bwall = new THREE.Mesh(new THREE.PlaneGeometry(30,14), L(0xF5EBD7));
+bwall.position.set(0,7,-11); scene.add(bwall);
+const rwall = new THREE.Mesh(new THREE.PlaneGeometry(30,14), L(0xF0E4D0));
+rwall.position.set(13,7,0); rwall.rotation.y=-Math.PI/2; scene.add(rwall);
 
-      const sent = emailLines.join(' ');
-      const reply = catReplies[Math.floor(Math.random() * catReplies.length)];
-      const moodData = catMoods[Math.floor(Math.random() * catMoods.length)];
+const deskG = new THREE.Group();
+deskG.add(p(Box(4.6,0.13,2.1,L(0x8B5E3C)),0,1.55,0));
+[[-2.1,0.76,-0.85],[2.1,0.76,-0.85],[-2.1,0.76,0.85],[2.1,0.76,0.85]].forEach(([x,y,z])=>deskG.add(p(Box(0.13,1.52,0.13,L(0x5C3A1A)),x,y,z)));
+deskG.position.z=-2.8; scene.add(deskG);
 
-      sendCount++;
-      document.getElementById('score').textContent = sendCount;
+const monG = new THREE.Group();
+monG.add(p(Box(2.0,1.3,0.1,L(0x111122)),0,0.65,0));
+monG.add(p(Box(1.82,1.12,0.05,L(0x0066dd,{emissive:new THREE.Color(0x001133)})),0,0.65,0.08));
+monG.add(p(Box(0.14,0.35,0.14,L(0x111122)),0,0,0));
+monG.add(p(Box(0.6,0.06,0.4,L(0x111122)),0,-0.15,0));
+monG.position.set(0.8,1.67,-4.6); scene.add(monG);
 
-      // 상사 반응
-      const face = document.getElementById('catFace');
-      face.textContent = moodData.emoji;
-      face.classList.remove('shake');
-      void face.offsetWidth;
-      face.classList.add('shake');
-      document.getElementById('bossMood').textContent = moodData.mood;
+const chairG = new THREE.Group();
+chairG.add(p(Box(1.3,0.1,1.3,L(0x2C3E50)),0,0.88,0));
+chairG.add(p(Box(1.3,1.1,0.1,L(0x253545)),0,1.43,-0.6));
+chairG.add(p(Cyl(0.05,0.78,L(0x888888)),0,0.37,0));
+chairG.add(p(new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.05,5),L(0x888888)),0,0.02,0));
+chairG.position.set(0,0,-2.6); scene.add(chairG);
 
-      const replyEl = document.getElementById('replyText');
-      replyEl.classList.remove('idle');
-      replyEl.textContent = reply;
+const catG = new THREE.Group();
+const CO=L(0xF5A623),CL2=L(0xFFE4B5),CD=L(0xD4881A),CP=L(0xFFAAAA),CB=L(0x111111),CW2=L(0xFFFFFF);
 
-      // 히스토리
-      const list = document.getElementById('historyList');
-      const empty = document.getElementById('emptyHistory');
-      if (empty) empty.remove();
+const body=Sph(0.52,CO); body.scale.set(1,1.05,0.88); p(body,0,0.52,0); catG.add(body);
+const belly=Sph(0.33,CL2); belly.scale.set(1,1.15,0.55); p(belly,0,0.52,0.37); catG.add(belly);
+const head=Sph(0.42,CO); p(head,0,1.32,0); catG.add(head);
 
-      const item = document.createElement('div');
-      item.className = 'history-item';
-      item.innerHTML = `
-        <div class="history-sent">${sent}</div>
-        <div class="history-arrow">→</div>
-        <div class="history-reply">🐱 "${reply}"</div>
-      `;
-      list.prepend(item);
+[-0.27,0.27].forEach(ex=>{
+  const eo=Cone(0.15,0.28,CO); p(eo,ex,1.62,0); rv(eo,0,0,ex>0?0.35:-0.35); catG.add(eo);
+  const ei=Cone(0.08,0.17,CP); p(ei,ex*0.92,1.60,0.06); rv(ei,0.2,0,ex>0?0.35:-0.35); catG.add(ei);
+});
 
-      // 특별 토스트
-      if (sendCount === 5) showToast("5통 보냄. 부장님 여전히 야옹.");
-      else if (sendCount === 10) showToast("10통... 이게 직장생활이다.");
-      else if (sendCount === 20) showToast("20통. 당신은 진정한 직장인입니다 🏆");
-      else if (sendCount === 50) showToast("50통?????? 퇴근하세요 진짜로");
+[-0.14,0.14].forEach(ex=>{
+  const eye=Sph(0.072,CB,10); p(eye,ex,1.34,0.37); catG.add(eye);
+  const shine=Sph(0.022,CW2,6); p(shine,ex+0.02,1.36,0.43); catG.add(shine);
+});
 
-      clearEmail();
-    }
+const nose=Sph(0.04,CP,8); p(nose,0,1.24,0.41); catG.add(nose);
 
-    function showToast(msg) {
-      const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2800);
-    }
-  </script>
+[-1,0,1].forEach(row=>[-1,1].forEach(side=>{
+  const w=new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.004,0.42),CD);
+  w.position.set(side*0.25,1.24+row*0.03,0.37);
+  rv(w,0,0,Math.PI/2); w.rotation.x=row*0.12;
+  catG.add(w);
+}));
+
+[-0.6,0.6].forEach(ex=>{
+  const arm=Cyl(0.1,0.42,CO); p(arm,ex,1.07,0.28); rv(arm,0.4,0,ex>0?-0.5:0.5); catG.add(arm);
+  const paw=Sph(0.12,CL2,8); p(paw,ex*1.1,0.88,0.5); catG.add(paw);
+});
+
+const tieV=new Float32Array([0,0.12,0,-0.09,0,0,0.09,0,0,-0.09,0,0,-0.06,-0.38,0,0,-0.32,0,0.09,0,0,0,-0.32,0,0.06,-0.38,0,-0.06,-0.38,0,0,-0.52,0,0.06,-0.38,0]);
+const tieG2=new THREE.BufferGeometry(); tieG2.setAttribute('position',new THREE.BufferAttribute(tieV,3)); tieG2.computeVertexNormals();
+const tie=new THREE.Mesh(tieG2,L(0xCC0000,{side:THREE.DoubleSide})); p(tie,0,0.75,0.5); catG.add(tie);
+
+[-0.14,0.14].forEach(ex=>{
+  const frame=new THREE.Mesh(new THREE.TorusGeometry(0.085,0.012,6,16),L(0x333333));
+  p(frame,ex,1.34,0.4); rv(frame,Math.PI/2,0,0); catG.add(frame);
+});
+const bridge=new THREE.Mesh(new THREE.CylinderGeometry(0.007,0.007,0.1),L(0x333333));
+rv(bridge,0,0,Math.PI/2); p(bridge,0,1.34,0.4); catG.add(bridge);
+
+const tailCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(0.5,0.35,-0.3),new THREE.Vector3(0.9,0.7,-0.1),new THREE.Vector3(1.1,1.0,0.1),new THREE.Vector3(0.85,1.2,0.2)]);
+const tailMesh=new THREE.Mesh(new THREE.TubeGeometry(tailCurve,10,0.065,8,false),CO);
+const tailTip=Sph(0.09,CL2,8); p(tailTip,0.85,1.2,0.2);
+catG.add(tailMesh); catG.add(tailTip);
+catG.position.set(-0.3,1.61,-2.9);
+scene.add(catG);
+
+function makePlane(){
+  const v=new Float32Array([
+    0,0.04,0.5,-0.38,0,-0.28,0,0.08,-0.22,
+    0,0.04,0.5,0,0.08,-0.22,0.38,0,-0.28,
+    0,0.04,0.5,-0.38,0,-0.28,0,-0.04,-0.1,
+    0,0.04,0.5,0,-0.04,-0.1,0.38,0,-0.28,
+    -0.38,0,-0.28,0,-0.04,-0.1,0,0.08,-0.22,
+    0.38,0,-0.28,0,0.08,-0.22,0,-0.04,-0.1,
+  ]);
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(v,3));
+  g.computeVertexNormals();
+  const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:0xFFFFFF,side:THREE.DoubleSide}));
+  m.castShadow=true; return m;
+}
+
+let airplane=null,planeT=0,planeFlying=false;
+const PS=new THREE.Vector3(0,0.8,5.5);
+const PC1=new THREE.Vector3(2.5,5.5,2);
+const PC2=new THREE.Vector3(-1.5,4.5,-1);
+const PE=new THREE.Vector3(-0.2,2.1,-2.0);
+let catReacting=false,catReactT=0,lines=[],sent=0;
+
+function pick(btn){
+  btn.classList.toggle('on');
+  const txt=btn.textContent.trim();
+  if(btn.classList.contains('on')) lines.push(txt);
+  else lines=lines.filter(l=>l!==txt);
+  const prev=document.getElementById('preview');
+  if(lines.length===0){prev.textContent='문구를 선택하세요';prev.className='empty';}
+  else{prev.textContent=lines.join(' ');prev.className='';}
+  document.getElementById('sendBtn').disabled=lines.length===0;
+}
+
+function clearMail(){
+  lines=[];
+  document.querySelectorAll('.ph').forEach(b=>b.classList.remove('on'));
+  const prev=document.getElementById('preview');
+  prev.textContent='문구를 선택하세요';prev.className='empty';
+  document.getElementById('sendBtn').disabled=true;
+}
+
+function send(){
+  if(lines.length===0||planeFlying) return;
+  sent++;
+  document.getElementById('score').textContent=`📨 ${sent}통`;
+  if(airplane) scene.remove(airplane);
+  airplane=makePlane();
+  airplane.position.copy(PS);
+  scene.add(airplane);
+  planeT=0;planeFlying=true;
+  clearMail();
+}
+
+function showBubble(){
+  const v=new THREE.Vector3(-0.3,2.5,-2.9);
+  v.project(camera);
+  const x=(v.x+1)/2*CW();
+  const y=(1-v.y)/2*CH();
+  const b=document.getElementById('bubble');
+  b.style.left=x+'px';b.style.top=y+'px';
+  b.classList.add('show');
+  setTimeout(()=>b.classList.remove('show'),1600);
+}
+
+function bez(p0,p1,p2,p3,t){const k=1-t;return p0*k*k*k+3*p1*k*k*t+3*p2*k*t*t+p3*t*t*t;}
+
+let prevT=performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt=Math.min((now-prevT)/1000,0.05),t=now/1000;
+  prevT=now;
+  catG.position.y=1.61+Math.sin(t*1.4)*0.018;
+  tailMesh.rotation.z=Math.sin(t*2.2)*0.12;
+  if(catReacting){
+    catReactT+=dt;
+    catG.rotation.y=Math.sin(catReactT*18)*0.18;
+    if(catReactT>0.55){catReacting=false;catReactT=0;catG.rotation.y=0;showBubble();}
+  }
+  if(planeFlying&&airplane){
+    planeT+=dt*0.55;
+    const pp=Math.min(planeT,1);
+    airplane.position.x=bez(PS.x,PC1.x,PC2.x,PE.x,pp);
+    airplane.position.y=bez(PS.y,PC1.y,PC2.y,PE.y,pp);
+    airplane.position.z=bez(PS.z,PC1.z,PC2.z,PE.z,pp);
+    airplane.rotation.y=t*4;
+    airplane.rotation.x=Math.sin(pp*Math.PI)*0.6-0.3;
+    airplane.scale.setScalar(1+Math.sin(pp*Math.PI)*0.4);
+    if(pp>=1){planeFlying=false;scene.remove(airplane);airplane=null;catReacting=true;catReactT=0;}
+  }
+  renderer.render(scene,camera);
+}
+requestAnimationFrame(loop);
+</script>
 </body>
 </html>

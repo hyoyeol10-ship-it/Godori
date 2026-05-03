@@ -1,0 +1,18 @@
+{
+  "name": "고도리 — 텍스트 변경 비교",
+  "short_name": "고도리",
+  "description": "초안과 수정안의 변경사항을 한눈에 비교",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F2F2F7",
+  "theme_color": "#007AFF",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

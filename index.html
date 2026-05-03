@@ -1,441 +1,266 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>고양이 상사 3D</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="고도리" />
+  <meta name="theme-color" content="#007AFF" />
+  <link rel="manifest" href="manifest.json" />
+  <title>고도리 — 텍스트 변경 비교</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { overflow: hidden; background: #87CEEB; font-family: 'Segoe UI', sans-serif; }
-    canvas { display: block; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    #bubble {
-      position: fixed;
-      background: white;
-      border-radius: 14px;
-      padding: 10px 20px;
-      font-size: 2rem;
-      font-weight: 900;
-      color: #222;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.15s;
-      transform: translate(-50%, -100%) translateY(-12px);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.18);
-      white-space: nowrap;
-      z-index: 200;
-    }
-    #bubble.show { opacity: 1; }
-    #bubble::after {
-      content: '';
-      position: absolute;
-      bottom: -9px;
-      left: 50%;
-      transform: translateX(-50%);
-      border: 9px solid transparent;
-      border-top-color: white;
-      border-bottom: 0;
+    :root {
+      --blue: #007AFF;
+      --green: #34C759;
+      --red: #FF3B30;
+      --bg: #F2F2F7;
+      --card: #FFFFFF;
+      --label: #000000;
+      --secondary: #6C6C70;
+      --separator: #C6C6C8;
+      --ins-bg: #D4F5DC;
+      --ins-fg: #1A6B2E;
+      --del-bg: #FDDCDC;
+      --del-fg: #8B1A1A;
+      --radius: 12px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
-    #score {
-      position: fixed;
-      top: 12px;
-      right: 12px;
-      background: rgba(0,0,0,0.5);
-      color: white;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 0.82rem;
-      font-weight: 700;
-      z-index: 200;
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1C1C1E;
+        --card: #2C2C2E;
+        --label: #FFFFFF;
+        --secondary: #8E8E93;
+        --separator: #38383A;
+        --ins-bg: #1A3D22;
+        --ins-fg: #6EE68A;
+        --del-bg: #3D1A1A;
+        --del-fg: #FF8080;
+      }
     }
 
-    #ui {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      background: rgba(255,255,255,0.97);
-      backdrop-filter: blur(14px);
-      border-radius: 22px 22px 0 0;
-      padding: 14px 14px 20px;
-      box-shadow: 0 -4px 30px rgba(0,0,0,0.13);
-      z-index: 100;
+    body {
+      font-family: -apple-system, "SF Pro Text", sans-serif;
+      background: var(--bg);
+      color: var(--label);
+      min-height: 100dvh;
+      padding-bottom: calc(16px + var(--safe-bottom));
     }
 
-    .to-line { font-size: 0.72rem; color: #bbb; margin-bottom: 7px; }
-    .to-line b { color: #5b6af0; }
-
-    #preview {
-      font-size: 0.75rem;
-      color: #555;
-      background: #f4f5ff;
-      border-radius: 8px;
-      padding: 6px 10px;
-      min-height: 26px;
-      margin-bottom: 8px;
-      line-height: 1.4;
-    }
-    #preview.empty { color: #ccc; font-style: italic; }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 5px;
-      margin-bottom: 8px;
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--separator);
+      padding: 16px 20px 12px;
+      padding-top: calc(16px + env(safe-area-inset-top, 0px));
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
-    .ph {
-      background: #f7f8ff;
-      border: 1.5px solid #e0e0f0;
-      border-radius: 9px;
-      padding: 8px 4px;
-      font-size: 0.72rem;
-      cursor: pointer;
-      color: #444;
-      text-align: center;
-      -webkit-tap-highlight-color: transparent;
-      transition: all 0.12s;
-    }
-    .ph.on { background: #eef0ff; border-color: #5b6af0; color: #4a59e0; font-weight: 700; }
+    header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
+    header p { font-size: 13px; color: var(--secondary); margin-top: 2px; }
 
-    .row { display: flex; gap: 8px; }
+    main { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 
-    #sendBtn {
-      flex: 1;
-      background: #5b6af0;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      padding: 12px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-    #sendBtn:disabled { background: #c8c8c8; }
+    .card { background: var(--card); border-radius: var(--radius); overflow: hidden; }
 
-    #clearBtn {
-      background: #f0f0f0;
-      border: none;
-      border-radius: 12px;
-      padding: 12px 14px;
-      font-size: 0.8rem;
-      color: #999;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px 8px; border-bottom: 1px solid var(--separator);
     }
+
+    .card-title { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; }
+
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-gray { background: var(--secondary); }
+    .dot-blue { background: var(--blue); }
+
+    .clear-btn {
+      background: none; border: none; color: var(--secondary); font-size: 13px;
+      cursor: pointer; padding: 4px 6px; border-radius: 6px; transition: opacity 0.15s;
+    }
+    .clear-btn:active { opacity: 0.5; }
+
+    textarea {
+      width: 100%; border: none; outline: none; background: transparent;
+      color: var(--label); font-family: inherit; font-size: 15px; line-height: 1.5;
+      resize: none; padding: 12px 14px; min-height: 140px;
+    }
+    textarea::placeholder { color: var(--secondary); }
+
+    .compare-btn {
+      background: var(--blue); color: #fff; border: none; border-radius: var(--radius);
+      font-size: 16px; font-weight: 600; padding: 15px; width: 100%; cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .compare-btn:active { opacity: 0.8; transform: scale(0.98); }
+    .compare-btn:disabled { background: var(--secondary); opacity: 0.5; cursor: default; transform: none; }
+
+    #result-section { display: none; }
+
+    .stats-bar {
+      display: flex; gap: 16px; padding: 10px 14px;
+      background: var(--bg); border-bottom: 1px solid var(--separator);
+    }
+    .stat { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; }
+    .stat-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .stat-count { font-weight: 700; }
+    .stat-green .stat-count { color: var(--green); }
+    .stat-red .stat-count { color: var(--red); }
+    .stat-gray .stat-count { color: var(--secondary); }
+
+    .diff-panels { display: flex; flex-direction: row; align-items: stretch; min-height: 0; }
+
+    .diff-panel {
+      flex: 1; min-width: 0; display: flex; flex-direction: column;
+      border-right: 1px solid var(--separator); max-height: 52vh;
+    }
+    .diff-panel:last-child { border-right: none; }
+
+    .diff-panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 10px; background: var(--bg);
+      border-bottom: 1px solid var(--separator); flex-shrink: 0;
+    }
+    .diff-panel-label {
+      display: flex; align-items: center; gap: 5px; font-size: 11px;
+      font-weight: 600; color: var(--secondary); text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .diff-panel-badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 10px; }
+    .badge-del { background: var(--del-bg); color: var(--del-fg); }
+    .badge-ins { background: var(--ins-bg); color: var(--ins-fg); }
+
+    .diff-panel-content {
+      padding: 10px; font-size: 14px; line-height: 1.7;
+      word-break: break-word; white-space: pre-wrap; overflow-y: auto; flex: 1;
+    }
+
+    .ins { background: var(--ins-bg); color: var(--ins-fg); border-radius: 3px; padding: 1px 2px; }
+    .del { background: var(--del-bg); color: var(--del-fg); text-decoration: line-through; border-radius: 3px; padding: 1px 2px; }
   </style>
 </head>
 <body>
 
-<canvas id="c"></canvas>
-<div id="bubble">ㅇㅋ</div>
-<div id="score">📨 0통</div>
+<header>
+  <h1>고도리</h1>
+  <p>텍스트 변경사항 비교</p>
+</header>
 
-<div id="ui">
-  <div class="to-line">To: <b>🐱 냥 부장님 &lt;meow@company.cat&gt;</b></div>
-  <div id="preview" class="empty">문구를 선택하세요</div>
-  <div class="grid">
-    <button class="ph" onclick="pick(this)">안녕하세요, 부장님.</button>
-    <button class="ph" onclick="pick(this)">수고하셨습니다!</button>
-    <button class="ph" onclick="pick(this)">확인 부탁드립니다.</button>
-    <button class="ph" onclick="pick(this)">감사합니다.</button>
-    <button class="ph" onclick="pick(this)">빠른 처리 부탁드립니다.</button>
-    <button class="ph" onclick="pick(this)">잘 부탁드립니다 🙏</button>
+<main>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><span class="dot dot-gray"></span>초안</div>
+      <button class="clear-btn" onclick="clearText('original')">지우기</button>
+    </div>
+    <textarea id="original" placeholder="원본 텍스트를 입력하세요" oninput="onInput()" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
   </div>
-  <div class="row">
-    <button id="sendBtn" onclick="send()" disabled>보내기 📤</button>
-    <button id="clearBtn" onclick="clearMail()">지우기</button>
-  </div>
-</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><span class="dot dot-blue"></span>수정안</div>
+      <button class="clear-btn" onclick="clearText('revised')">지우기</button>
+    </div>
+    <textarea id="revised" placeholder="수정된 텍스트를 입력하세요" oninput="onInput()" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
+  </div>
+
+  <button class="compare-btn" id="compare-btn" onclick="compare()" disabled>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12h14M15 6l6 6-6 6M9 6L3 12l6 6"/>
+    </svg>
+    변경사항 비교하기
+  </button>
+
+  <div class="card" id="result-section">
+    <div class="card-header">
+      <div class="card-title">비교 결과</div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat stat-green"><span class="stat-dot" style="background:var(--green)"></span>추가 <span class="stat-count" id="count-ins">0</span></div>
+      <div class="stat stat-red"><span class="stat-dot" style="background:var(--red)"></span>삭제 <span class="stat-count" id="count-del">0</span></div>
+      <div class="stat stat-gray"><span class="stat-dot" style="background:var(--secondary)"></span>유지 <span class="stat-count" id="count-eq">0</span></div>
+    </div>
+    <div class="diff-panels">
+      <div class="diff-panel">
+        <div class="diff-panel-header">
+          <div class="diff-panel-label"><span class="dot dot-gray"></span>초안</div>
+          <span class="diff-panel-badge badge-del" id="badge-del">삭제 0</span>
+        </div>
+        <div class="diff-panel-content" id="diff-original"></div>
+      </div>
+      <div class="diff-panel">
+        <div class="diff-panel-header">
+          <div class="diff-panel-label"><span class="dot dot-blue"></span>수정안</div>
+          <span class="diff-panel-badge badge-ins" id="badge-ins">추가 0</span>
+        </div>
+        <div class="diff-panel-content" id="diff-revised"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
 <script>
-const UI_H = () => document.getElementById('ui').offsetHeight + 10;
-const CW = () => window.innerWidth;
-const CH = () => window.innerHeight - UI_H();
-
-const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87CEEB);
-scene.fog = new THREE.Fog(0x87CEEB, 18, 40);
-
-const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 100);
-camera.position.set(0, 3.2, 8.5);
-camera.lookAt(0, 1.5, 0);
-
-function resize() {
-  const w = CW(), h = CH();
-  renderer.setSize(w, h);
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-}
-window.addEventListener('resize', resize);
-resize();
-
-scene.add(new THREE.AmbientLight(0xffffff, 0.65));
-const sun = new THREE.DirectionalLight(0xfffaf0, 1.4);
-sun.position.set(6, 10, 7);
-sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
-sun.shadow.camera.left = -10; sun.shadow.camera.right = 10;
-sun.shadow.camera.top = 10; sun.shadow.camera.bottom = -10;
-scene.add(sun);
-const fill = new THREE.PointLight(0x8899ff, 0.45, 20);
-fill.position.set(-5, 5, 3);
-scene.add(fill);
-
-const L = (color, opts) => new THREE.MeshLambertMaterial({ color, ...opts });
-function Box(w,h,d,mat){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.castShadow=true; m.receiveShadow=true; return m; }
-function Sph(r,mat,seg=16){ const m=new THREE.Mesh(new THREE.SphereGeometry(r,seg,seg),mat); m.castShadow=true; return m; }
-function Cyl(r,h,mat,seg=12){ const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg),mat); m.castShadow=true; return m; }
-function Cone(r,h,mat,seg=3){ const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,seg),mat); m.castShadow=true; return m; }
-function p(m,x,y,z){ m.position.set(x,y,z); return m; }
-function rv(m,x,y,z){ m.rotation.set(x,y,z); return m; }
-
-// 배경 환경
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(30,30), L(0xC9A87A));
-floor.rotation.x = -Math.PI/2; floor.receiveShadow=true;
-scene.add(floor);
-const bwall = new THREE.Mesh(new THREE.PlaneGeometry(30,14), L(0xF5EBD7));
-bwall.position.set(0,7,-11); scene.add(bwall);
-const rwall = new THREE.Mesh(new THREE.PlaneGeometry(30,14), L(0xF0E4D0));
-rwall.position.set(13,7,0); rwall.rotation.y=-Math.PI/2; scene.add(rwall);
-
-// 책상
-const deskG = new THREE.Group();
-deskG.add(p(Box(4.6,0.13,2.1,L(0x8B5E3C)),0,1.55,0));
-[[-2.1,0.76,-0.85],[2.1,0.76,-0.85],[-2.1,0.76,0.85],[2.1,0.76,0.85]].forEach(([x,y,z])=>deskG.add(p(Box(0.13,1.52,0.13,L(0x5C3A1A)),x,y,z)));
-deskG.position.z=-2.8; scene.add(deskG);
-
-// 모니터
-const monG = new THREE.Group();
-monG.add(p(Box(2.0,1.3,0.1,L(0x111122)),0,0.65,0));
-monG.add(p(Box(1.82,1.12,0.05,L(0x0066dd,{emissive:new THREE.Color(0x001133)})),0,0.65,0.08));
-monG.add(p(Box(0.14,0.35,0.14,L(0x111122)),0,0,0));
-monG.add(p(Box(0.6,0.06,0.4,L(0x111122)),0,-0.15,0));
-monG.position.set(0.8,1.67,-4.6); scene.add(monG);
-
-// 의자
-const chairG = new THREE.Group();
-chairG.add(p(Box(1.3,0.1,1.3,L(0x2C3E50)),0,0.88,0));
-chairG.add(p(Box(1.3,1.1,0.1,L(0x253545)),0,1.43,-0.6));
-chairG.add(p(Cyl(0.05,0.78,L(0x888888)),0,0.37,0));
-chairG.add(p(new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.05,5),L(0x888888)),0,0.02,0));
-chairG.position.set(0,0,-2.6); scene.add(chairG);
-
-// ── 귀여운 고양이 부장님 ──
-const catG = new THREE.Group();
-const CO  = L(0xFFA07A); // 살구빛 주황 털
-const CL2 = L(0xFFF0DC); // 크림색 배/주둥이
-const CD  = L(0xD4642A); // 진한 주황 (수염, 줄무늬)
-const CP  = L(0xFFB3C6); // 분홍 (귀 속, 코, 홍조)
-const CB  = L(0x1A1A2E); // 눈동자 (짙은 남색)
-const CW2 = L(0xFFFFFF); // 흰자위 / 반짝이
-const CBLUSH = new THREE.MeshLambertMaterial({color:0xFF9999, transparent:true, opacity:0.48});
-
-// 통통한 몸통
-const body = Sph(0.56, CO); body.scale.set(1, 0.94, 0.92);
-p(body, 0, 0.56, 0); catG.add(body);
-
-// 크림 배
-const belly = Sph(0.38, CL2); belly.scale.set(0.86, 1.0, 0.50);
-p(belly, 0, 0.56, 0.44); catG.add(belly);
-
-// ★ 크고 동글동글한 머리 (귀여움의 핵심)
-const head = Sph(0.58, CO);
-p(head, 0, 1.52, 0); catG.add(head);
-
-// 볼살 (고양이 뽀글뽀글 볼)
-[-0.40, 0.40].forEach(ex => {
-  const cheek = Sph(0.24, CO); cheek.scale.set(1, 0.80, 0.78);
-  p(cheek, ex, 1.47, 0.14); catG.add(cheek);
-});
-
-// 주둥이 (밝은 크림색)
-const muzzle = Sph(0.28, CL2); muzzle.scale.set(1, 0.68, 0.56);
-p(muzzle, 0, 1.43, 0.49); catG.add(muzzle);
-
-// ★ 귀 — 삼각형, 분홍 속귀
-[-0.42, 0.42].forEach(ex => {
-  const eo = Cone(0.24, 0.40, CO, 3);
-  p(eo, ex, 1.97, 0); rv(eo, 0, 0, ex > 0 ? 0.24 : -0.24); catG.add(eo);
-  const ei = Cone(0.13, 0.25, CP, 3);
-  p(ei, ex * 0.90, 1.95, 0.10); rv(ei, 0.22, 0, ex > 0 ? 0.24 : -0.24); catG.add(ei);
-});
-
-// ★ 크고 반짝이는 눈 (흰자 + 동공 + 반짝이 2개)
-[-0.23, 0.23].forEach(ex => {
-  const sclera = Sph(0.138, CW2, 14); sclera.scale.set(1, 1, 0.44);
-  p(sclera, ex, 1.56, 0.51); catG.add(sclera);
-
-  const pupil = Sph(0.095, CB, 12); pupil.scale.set(1, 1, 0.36);
-  p(pupil, ex, 1.56, 0.59); catG.add(pupil);
-
-  // 큰 반짝이
-  const sh1 = Sph(0.037, CW2, 8);
-  p(sh1, ex + 0.033, 1.595, 0.64); catG.add(sh1);
-  // 작은 반짝이
-  const sh2 = Sph(0.019, CW2, 6);
-  p(sh2, ex - 0.023, 1.530, 0.63); catG.add(sh2);
-});
-
-// 작고 귀여운 분홍 코
-const nose = Sph(0.048, CP, 10); nose.scale.set(1, 0.66, 0.58);
-p(nose, 0, 1.44, 0.58); catG.add(nose);
-
-// ★ 홍조 (귀여움 포인트)
-[-0.37, 0.37].forEach(ex => {
-  const blush = new THREE.Mesh(new THREE.SphereGeometry(0.118, 8, 8), CBLUSH);
-  blush.scale.set(1, 0.50, 0.26);
-  p(blush, ex, 1.44, 0.55); catG.add(blush);
-});
-
-// ★ 수염 (고양이 특성 — 굵고 선명하게)
-[-1, 0, 1].forEach(row => [-1, 1].forEach(side => {
-  const w = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.004, 0.58), CD);
-  w.position.set(side * 0.31, 1.44 + row * 0.044, 0.51);
-  rv(w, 0, 0, Math.PI / 2);
-  w.rotation.x = row * 0.10;
-  catG.add(w);
-}));
-
-// 통통한 앞발
-[-0.64, 0.64].forEach(ex => {
-  const arm = Cyl(0.12, 0.40, CO);
-  p(arm, ex, 1.11, 0.26); rv(arm, 0.44, 0, ex > 0 ? -0.44 : 0.44); catG.add(arm);
-  const paw = Sph(0.155, CL2, 12); paw.scale.set(1.10, 0.70, 1);
-  p(paw, ex * 1.18, 0.91, 0.55); catG.add(paw);
-});
-
-// 넥타이 (부장님 포인트)
-const tieShape = new THREE.Shape();
-tieShape.moveTo(0, 0.13); tieShape.lineTo(-0.11, 0.02);
-tieShape.lineTo(-0.07, -0.40); tieShape.lineTo(0, -0.54);
-tieShape.lineTo(0.07, -0.40); tieShape.lineTo(0.11, 0.02);
-tieShape.closePath();
-const tie = new THREE.Mesh(new THREE.ShapeGeometry(tieShape), L(0xCC0000, {side: THREE.DoubleSide}));
-p(tie, 0, 0.83, 0.56); catG.add(tie);
-
-// 동그란 안경 (부장님 포인트)
-[-0.20, 0.20].forEach(ex => {
-  const frame = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.013, 8, 22), L(0x333333));
-  p(frame, ex, 1.56, 0.60); rv(frame, Math.PI / 2, 0, 0); catG.add(frame);
-});
-const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.15), L(0x333333));
-rv(bridge, 0, 0, Math.PI / 2); p(bridge, 0, 1.56, 0.60); catG.add(bridge);
-
-// ★ 위로 살짝 올라간 꼬리 (고양이 특성)
-const tailCurve = new THREE.CatmullRomCurve3([
-  new THREE.Vector3(0.48,  0.32, -0.32),
-  new THREE.Vector3(0.88,  0.70, -0.14),
-  new THREE.Vector3(1.12,  1.14,  0.08),
-  new THREE.Vector3(0.72,  1.46,  0.28),
-]);
-const tailMesh = new THREE.Mesh(new THREE.TubeGeometry(tailCurve, 12, 0.084, 8, false), CO);
-const tailTip = Sph(0.115, CL2, 10); p(tailTip, 0.72, 1.46, 0.28);
-catG.add(tailMesh); catG.add(tailTip);
-catG.position.set(-0.3, 1.61, -2.9);
-scene.add(catG);
-
-// ── 종이비행기 ──
-function makePlane(){
-  const v = new Float32Array([
-    0,0.04,0.5,-0.38,0,-0.28,0,0.08,-0.22,
-    0,0.04,0.5,0,0.08,-0.22,0.38,0,-0.28,
-    0,0.04,0.5,-0.38,0,-0.28,0,-0.04,-0.1,
-    0,0.04,0.5,0,-0.04,-0.1,0.38,0,-0.28,
-    -0.38,0,-0.28,0,-0.04,-0.1,0,0.08,-0.22,
-    0.38,0,-0.28,0,0.08,-0.22,0,-0.04,-0.1,
-  ]);
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(v, 3));
-  g.computeVertexNormals();
-  const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({color:0xFFFFFF, side:THREE.DoubleSide}));
-  m.castShadow = true; return m;
-}
-
-let airplane=null, planeT=0, planeFlying=false;
-const PS  = new THREE.Vector3(0, 0.8, 5.5);
-const PC1 = new THREE.Vector3(2.5, 5.5, 2);
-const PC2 = new THREE.Vector3(-1.5, 4.5, -1);
-const PE  = new THREE.Vector3(-0.2, 2.1, -2.0);
-let catReacting=false, catReactT=0, lines=[], sent=0;
-
-function pick(btn){
-  btn.classList.toggle('on');
-  const txt = btn.textContent.trim();
-  if(btn.classList.contains('on')) lines.push(txt);
-  else lines = lines.filter(l => l !== txt);
-  const prev = document.getElementById('preview');
-  if(lines.length===0){ prev.textContent='문구를 선택하세요'; prev.className='empty'; }
-  else { prev.textContent=lines.join(' '); prev.className=''; }
-  document.getElementById('sendBtn').disabled = lines.length===0;
-}
-
-function clearMail(){
-  lines = [];
-  document.querySelectorAll('.ph').forEach(b => b.classList.remove('on'));
-  const prev = document.getElementById('preview');
-  prev.textContent='문구를 선택하세요'; prev.className='empty';
-  document.getElementById('sendBtn').disabled = true;
-}
-
-function send(){
-  if(lines.length===0 || planeFlying) return;
-  sent++;
-  document.getElementById('score').textContent = `📨 ${sent}통`;
-  if(airplane) scene.remove(airplane);
-  airplane = makePlane();
-  airplane.position.copy(PS);
-  scene.add(airplane);
-  planeT=0; planeFlying=true;
-  clearMail();
-}
-
-function showBubble(){
-  const v = new THREE.Vector3(-0.3, 3.35, -2.9);
-  v.project(camera);
-  const x = (v.x+1)/2 * CW();
-  const y = (1-v.y)/2 * CH();
-  const b = document.getElementById('bubble');
-  b.style.left = x+'px'; b.style.top = y+'px';
-  b.classList.add('show');
-  setTimeout(()=>b.classList.remove('show'), 1600);
-}
-
-function bez(p0,p1,p2,p3,t){ const k=1-t; return p0*k*k*k+3*p1*k*k*t+3*p2*k*t*t+p3*t*t*t; }
-
-let prevT = performance.now();
-function loop(now){
-  requestAnimationFrame(loop);
-  const dt=Math.min((now-prevT)/1000,0.05), t=now/1000;
-  prevT=now;
-  catG.position.y = 1.61 + Math.sin(t*1.4)*0.018;
-  tailMesh.rotation.z = Math.sin(t*2.2)*0.14;
-  if(catReacting){
-    catReactT += dt;
-    catG.rotation.y = Math.sin(catReactT*18)*0.18;
-    if(catReactT>0.55){ catReacting=false; catReactT=0; catG.rotation.y=0; showBubble(); }
+  function tokenize(text) {
+    const tokens = []; let cur = '';
+    for (const ch of text) {
+      if (' \t\n\r'.includes(ch)) { if (cur) { tokens.push(cur); cur = ''; } tokens.push(ch); }
+      else { cur += ch; }
+    }
+    if (cur) tokens.push(cur);
+    return tokens;
   }
-  if(planeFlying && airplane){
-    planeT += dt*0.55;
-    const pp = Math.min(planeT, 1);
-    airplane.position.x = bez(PS.x,PC1.x,PC2.x,PE.x,pp);
-    airplane.position.y = bez(PS.y,PC1.y,PC2.y,PE.y,pp);
-    airplane.position.z = bez(PS.z,PC1.z,PC2.z,PE.z,pp);
-    airplane.rotation.y = t*4;
-    airplane.rotation.x = Math.sin(pp*Math.PI)*0.6-0.3;
-    airplane.scale.setScalar(1+Math.sin(pp*Math.PI)*0.4);
-    if(pp>=1){ planeFlying=false; scene.remove(airplane); airplane=null; catReacting=true; catReactT=0; }
+
+  function diff(oldToks, newToks) {
+    const m = oldToks.length, n = newToks.length;
+    const dp = new Int32Array((m + 1) * (n + 1));
+    for (let i = 1; i <= m; i++)
+      for (let j = 1; j <= n; j++)
+        dp[i*(n+1)+j] = oldToks[i-1]===newToks[j-1] ? dp[(i-1)*(n+1)+(j-1)]+1 : Math.max(dp[(i-1)*(n+1)+j], dp[i*(n+1)+(j-1)]);
+    const result = []; let i = m, j = n;
+    while (i > 0 || j > 0) {
+      if (i>0&&j>0&&oldToks[i-1]===newToks[j-1]) { result.push({type:'eq',text:oldToks[i-1]}); i--; j--; }
+      else if (j>0&&(i===0||dp[i*(n+1)+(j-1)]>=dp[(i-1)*(n+1)+j])) { result.push({type:'ins',text:newToks[j-1]}); j--; }
+      else { result.push({type:'del',text:oldToks[i-1]}); i--; }
+    }
+    return result.reverse();
   }
-  renderer.render(scene, camera);
-}
-requestAnimationFrame(loop);
+
+  function escape(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function onInput() {
+    const a = document.getElementById('original').value.trim();
+    const b = document.getElementById('revised').value.trim();
+    document.getElementById('compare-btn').disabled = !(a && b);
+  }
+
+  function clearText(id) { document.getElementById(id).value = ''; onInput(); }
+
+  function compare() {
+    const original = document.getElementById('original').value;
+    const revised = document.getElementById('revised').value;
+    const tokens = diff(tokenize(original), tokenize(revised));
+    let origHtml = '', revHtml = '', ins = 0, del = 0, eq = 0;
+    for (const tok of tokens) {
+      const t = escape(tok.text);
+      if (tok.type==='ins') { revHtml+=`<span class="ins">${t}</span>`; if(tok.text.trim()) ins++; }
+      else if (tok.type==='del') { origHtml+=`<span class="del">${t}</span>`; if(tok.text.trim()) del++; }
+      else { origHtml+=t; revHtml+=t; if(tok.text.trim()) eq++; }
+    }
+    document.getElementById('diff-original').innerHTML = origHtml;
+    document.getElementById('diff-revised').innerHTML = revHtml;
+    document.getElementById('count-ins').textContent = ins;
+    document.getElementById('count-del').textContent = del;
+    document.getElementById('count-eq').textContent = eq;
+    document.getElementById('badge-del').textContent = `삭제 ${del}`;
+    document.getElementById('badge-ins').textContent = `추가 ${ins}`;
+    const section = document.getElementById('result-section');
+    section.style.display = 'block';
+    section.scrollIntoView({behavior:'smooth',block:'start'});
+  }
 </script>
 </body>
 </html>
